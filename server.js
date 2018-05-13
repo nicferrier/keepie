@@ -19,7 +19,7 @@ const config = {
         "type": "plain",
         "password": "secret",
         "urls": [
-            "http://localhost:5000"
+            "http://localhost:5000/pg/keepie-secret/"
         ]
     }
 };
@@ -42,7 +42,10 @@ exports.boot = function (port, options) {
                       password: servicePassword,
                       type: serviceType } = config[service];
                 let [matchingUrl] = serviceUrls.filter(url => url == receiptUrl);
-                if (matchingUrl !== undefined) {
+                if (matchingUrl === undefined) {
+                    console.log("unauthorized request", service, receiptUrl);
+                }
+                else {
                     let form = new FormData();
                     form.append("password", servicePassword);
                     form.append("name", service);
