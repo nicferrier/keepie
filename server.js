@@ -76,7 +76,18 @@ exports.boot = function (port, options) {
         response.sendStatus(400);
     });
 
+    // Standard app callback stuff
+    let appCallback = opts.appCallback;
+    if (typeof(appCallback) === "function") {
+        appCallback(app);
+    }
+    
     let listener = app.listen(port, "localhost", async function () {
+        let listenerCallback = opts.listenerCallback;
+        if (typeof(listenerCallback) === "function") {
+            listenerCallback(listener.address());
+        }
+
         console.log("listening on ", listener.address().port);
     });
 };

@@ -51,7 +51,6 @@ exports.boot = function (portToListen, options) {
 
         // Do the postgres init after the response has gone back
         response.on("finish", async function () {
-            console.log("finish event called");
             try {
                 // Get a spare socket
                 let listenerAddress = await getFreePort();
@@ -75,6 +74,7 @@ exports.boot = function (portToListen, options) {
                         let file = await fs.readFileAsync(config);
                         let output = file.replace(/^#port = .*/gm, 'port = ' + socketNumber);
                         await fs.writeFileAsync(config, output);
+                        await fs.writeFileAsync(dbDir + "/port", socketNumber);
                     });
                     child.stdout.pipe(process.stdout);
                     child.stderr.pipe(process.stderr);

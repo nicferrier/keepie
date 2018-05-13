@@ -38,3 +38,19 @@ curl -F "password=somesecret" \
 Keepie is extremely simple and only does a very small, simple
 thing. But it enables services that want to own things that need
 credentials (like databases) to operate in a disposable way.
+
+## Keepie Postgresql example 
+
+Included is an example server called pg.js.
+
+When started this will attempt to talk to Keepie and, when it receives
+a password, create a postgresql server.
+
+There are many environmet specific things about doing this, so pg.js assumes:
+
+* the use of initdb to create the server locally
+* the path of initdb as of ubuntu 16 postgresql-10 package
+* a made up port is used
+
+Lastly, one more conveniance. The randomly chosen port is also written
+to the file called "port" in the db config directory.
