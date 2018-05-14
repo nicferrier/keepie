@@ -57,6 +57,12 @@ Array.prototype.filterAsync = async function (fn) {
     return result;
 };
 
+function eventPromise(eventFn) {
+    return new Promise((resolve, reject) => {
+        eventFn(resolve);
+    });
+}
+
 function grepper(testFunction) {
     return new Transform({
         transform(chunk, encoding, callback) {
@@ -123,56 +129,58 @@ exports.boot = function (portToListen, options) {
             return;
         }
 
-        // Do the postgres init after the response has gone back
-        response.on("finish", async function () {
-            try {
-                // Do Pg init
-                let path = process.env["PATH"] + ":/usr/lib/postgresql/10/bin";
-                let pgExeRoot = await findPathDir("initdb", path);
-                console.log("pgExeRoot", pgExeRoot);
-                let pgPath = pgExeRoot + "/initdb";
-                let dbDir = __dirname + "/dbdir";
-                let dbdirExists = await fs.existsAsync(dbDir);
-                if (dbdirExists) {
-                    // Boot the db
-                    startDb(pgExeRoot, dbDir);
-                }
-                else {
-                    // Get a spare socket
-                    let listenerAddress = await getFreePort();
-                    let socketNumber = "" + listenerAddress.port;
-                    console.log("socket number", socketNumber);
-
-                    let initdbPath = pgPath + "/initdb";
-                    let portEnv = { "PGPORT":  socketNumber };
-                    let env = { env: portEnv };
-                    let child = spawn(initdbPath, ["-D", dbDir], env);
-                    child.stdout.pipe(process.stdout);
-                    child.stderr.pipe(process.stderr);
-                    
-                    child.on("exit", async function () {
-                        // rewrite the port in postgresql.conf
-                        let config = dbDir + "/postgresql.conf";
-                        let file = await fs.readFileAsync(config);
-                        let portChanged = file.replace(/^#port = .*/gm, 'port = ' + socketNumber);
-                        let runDir = dbDir + "/run";
-                        fs.mkdirAsync(runDir);
-                        let sockDirChanged = portChanged.replace(/^#unix_socket_directories = .*/gm, "unix_socket_directories = '" + runDir + "'");
-                        await fs.writeFileAsync(config, sockDirChanged);
-                        await fs.writeFileAsync(dbDir + "/port", socketNumber);
-
-                        // Boot it!
-                        startDb(pgExeRoot, dbDir);
-                    });
-                }
-            }
-            catch (e) {
-                console.log("db error", e);
-            }
-        });
-
         // And send back the response
         response.sendStatus(204);
+
+        let onFinish = finisher => response.on("finish", finisher);
+        await eventPromise(onFinish);
+        // Do the postgres init after the response has gone back
+        try {
+            // Do Pg init
+            let ubuntuPgPath = "/usr/lib/postgresql/10/bin";
+            let path = process.env["PATH"] + ":" + ubuntuPgPath;
+            let pgExeRoot = await findPathDir("initdb", path);
+            
+            let pgPath = pgExeRoot + "/initdb";
+            let dbDir = __dirname + "/dbdir";
+            let dbdirExists = await fs.existsAsync(dbDir);
+            if (dbdirExists) {
+                // Boot the db
+                startDb(pgExeRoot, dbDir);
+            }
+            else {
+                // Get a spare socket
+                let listenerAddress = await getFreePort();
+                let socketNumber = "" + listenerAddress.port;
+                console.log("socket number", socketNumber);
+                
+                let initdbPath = pgPath + "/initdb";
+                let portEnv = { "PGPORT":  socketNumber };
+                let env = { env: portEnv };
+                let child = spawn(initdbPath, ["-D", dbDir], env);
+                child.stdout.pipe(process.stdout);
+                child.stderr.pipe(process.stderr);
+                
+                let onExit = proc => child.on("exit", proc);
+                await eventPromise(onExit);
+                
+                // rewrite the port in postgresql.conf
+                let config = dbDir + "/postgresql.conf";
+                let file = await fs.readFileAsync(config);
+                let portChanged = file.replace(/^#port = .*/gm, 'port = ' + socketNumber);
+                let runDir = dbDir + "/run";
+                fs.mkdirAsync(runDir);
+                let sockDirChanged = portChanged.replace(/^#unix_socket_directories = .*/gm, "unix_socket_directories = '" + runDir + "'");
+                await fs.writeFileAsync(config, sockDirChanged);
+                await fs.writeFileAsync(dbDir + "/port", socketNumber);
+                
+                // Boot it!
+                startDb(pgExeRoot, dbDir);
+            }
+        }
+        catch (e) {
+            console.log("db error", e);
+        }
     });
 
     // Standard app callback stuff
