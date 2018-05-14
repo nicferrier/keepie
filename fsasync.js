@@ -60,10 +60,11 @@ fs.statAsync = function (path) {
     });
 };
 
-fs.existsAsync = function (path) {
+fs.existsAsync = function (path, modes) {
+    modes = modes !== undefined ? modes : fs.constants.R_OK | fs.constants.W_OK;
     return new Promise((resolve, reject) => {
         try {
-            fs.access(path, fs.constants.R_OK | fs.constants.W_OK, err => {
+            fs.access(path, modes, err => {
                 if (err) resolve(false);
                 else resolve(true);
             });

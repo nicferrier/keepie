@@ -2,7 +2,6 @@
 // Copyright (C) 2018 by Nic Ferrier
 
 const fs = require('./fsasync.js');
-const path = require('path');
 const { URL } = require('url');
 const crypto = require("crypto");
 const { spawn } = require("child_process");
@@ -13,6 +12,9 @@ const fetch = require("node-fetch");
 const express = require("express");
 const bodyParser = require("body-parser");
 const multer  = require('multer')
+
+const { Client } = require('pg');
+const sqlInit = require("./sqlapply.js");
 
 const app = express();
 const upload = multer()
@@ -31,6 +33,78 @@ function getFreePort () {
             reject(e);
         }
     });
+}
+
+
+Array.prototype.forEachAsync = async function (fn) {
+    for (let t of this) { await fn(t) }
+};
+
+Array.prototype.mapAsync = async function (fn) {
+    let result = [];
+    for (let t of this) { result.push(await fn(t)); }
+    return result;
+};
+
+Array.prototype.filterAsync = async function (fn) {
+    let result = [];
+    for (let t of this) {
+        let include = await fn(t);
+        if (include) {
+            result.push(t);
+        }
+    }
+    return result;
+};
+
+function grepper(testFunction) {
+    return new Transform({
+        transform(chunk, encoding, callback) {
+            let dataBuf = chunk.toString();
+            dataBuf.split("\n").forEachAsync(testFunction);
+            this.push("pg.js::" + dataBuf);
+            callback();
+        }
+    });
+}
+
+async function findPathDir(exe, path) {
+    path = path !== undefined ? path : process.env["PATH"];
+    console.log("exe", exe);
+    let pathParts = path.split(":");
+    let existsModes = fs.constants.R_OK;
+    let existing = await pathParts
+        .filterAsync(async p => await fs.existsAsync(p, existsModes));
+    let lists = await existing.mapAsync(async p => [p, await fs.readdirAsync(p)]);
+    let exePlaces = await lists
+        .filterAsync(async n => n[1].find(s => s==exe) !== undefined);
+    let [place, list] = exePlaces[0];
+    return place;
+}
+
+async function startDb(pgPath, dbDir) {
+    let postgresPath = pgPath + "/postgres";
+    let grepping = grepper(async line => {
+        let found = /is (ready) to accept connections/.exec(line);
+        if (found !== undefined && found != null && found[1] == "ready") {
+            let port = await fs.readFileAsync(dbDir + "/port");
+            let config = {
+                user: process.env["USER"],
+                host: "localhost",
+                port: port,
+                database: "postgres"
+            };
+            sqlInit.initDb(__dirname + "/sql-scripts", config);
+            //await sqlInit.end();
+            console.log("are we done?");
+        }
+    });
+
+    let startChild = spawn(postgresPath, ["-D", dbDir]);
+    startChild.stdout.pipe(process.stdout);
+    startChild.stderr
+        .pipe(grepping)
+        .pipe(process.stderr);
 }
 
 exports.boot = function (portToListen, options) {
@@ -52,32 +126,44 @@ exports.boot = function (portToListen, options) {
         // Do the postgres init after the response has gone back
         response.on("finish", async function () {
             try {
-                // Get a spare socket
-                let listenerAddress = await getFreePort();
-                let socketNumber = "" + listenerAddress.port;
-                console.log("socket number", socketNumber);
-            
                 // Do Pg init
+                let path = process.env["PATH"] + ":/usr/lib/postgresql/10/bin";
+                let pgExeRoot = await findPathDir("initdb", path);
+                console.log("pgExeRoot", pgExeRoot);
+                let pgPath = pgExeRoot + "/initdb";
                 let dbDir = __dirname + "/dbdir";
                 let dbdirExists = await fs.existsAsync(dbDir);
                 if (dbdirExists) {
-                    // start the db
+                    // Boot the db
+                    startDb(pgExeRoot, dbDir);
                 }
                 else {
-                    let initdbPath = "/usr/lib/postgresql/10/bin/initdb";
-                    let child = spawn(initdbPath, ["-D", dbDir], {
-                        env: { "PGPORT":  socketNumber }
-                    });
+                    // Get a spare socket
+                    let listenerAddress = await getFreePort();
+                    let socketNumber = "" + listenerAddress.port;
+                    console.log("socket number", socketNumber);
+
+                    let initdbPath = pgPath + "/initdb";
+                    let portEnv = { "PGPORT":  socketNumber };
+                    let env = { env: portEnv };
+                    let child = spawn(initdbPath, ["-D", dbDir], env);
+                    child.stdout.pipe(process.stdout);
+                    child.stderr.pipe(process.stderr);
+                    
                     child.on("exit", async function () {
                         // rewrite the port in postgresql.conf
                         let config = dbDir + "/postgresql.conf";
                         let file = await fs.readFileAsync(config);
-                        let output = file.replace(/^#port = .*/gm, 'port = ' + socketNumber);
-                        await fs.writeFileAsync(config, output);
+                        let portChanged = file.replace(/^#port = .*/gm, 'port = ' + socketNumber);
+                        let runDir = dbDir + "/run";
+                        fs.mkdirAsync(runDir);
+                        let sockDirChanged = portChanged.replace(/^#unix_socket_directories = .*/gm, "unix_socket_directories = '" + runDir + "'");
+                        await fs.writeFileAsync(config, sockDirChanged);
                         await fs.writeFileAsync(dbDir + "/port", socketNumber);
+
+                        // Boot it!
+                        startDb(pgExeRoot, dbDir);
                     });
-                    child.stdout.pipe(process.stdout);
-                    child.stderr.pipe(process.stderr);
                 }
             }
             catch (e) {
