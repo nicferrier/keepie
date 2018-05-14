@@ -57,7 +57,7 @@ Array.prototype.filterAsync = async function (fn) {
     return result;
 };
 
-function eventPromise(eventFn) {
+function eventToHappen(eventFn) {
     return new Promise((resolve, reject) => {
         eventFn(resolve);
     });
@@ -133,7 +133,7 @@ exports.boot = function (portToListen, options) {
         response.sendStatus(204);
 
         let onFinish = finisher => response.on("finish", finisher);
-        await eventPromise(onFinish);
+        await eventToHappen(onFinish);
         // Do the postgres init after the response has gone back
         try {
             // Do Pg init
@@ -162,7 +162,7 @@ exports.boot = function (portToListen, options) {
                 child.stderr.pipe(process.stderr);
                 
                 let onExit = proc => child.on("exit", proc);
-                await eventPromise(onExit);
+                await eventToHappen(onExit);
                 
                 // rewrite the port in postgresql.conf
                 let config = dbDir + "/postgresql.conf";
