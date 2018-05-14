@@ -116,12 +116,12 @@ async function startDb(pgPath, dbDir) {
 exports.boot = function (portToListen, options) {
     let opts = options != undefined ? options : {};
     let rootDir = opts.rootDir != undefined ? opts.rootDir : __dirname + "/www";
+    let secretPath = opts.secretPath != undefined ? opts.secretPath : "/pg/keepie-secret/";
 
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({extended: true}));
-    //app.use("/keepie", express.static(rootDir));
 
-    app.post("/pg/keepie-secret/", upload.array(), async function (req, response) {
+    app.post(secretPath, upload.array(), async function (req, response) {
         let data = req.body;
         let { name, password } = data;
         if (name !== "myservice" || password === undefined) {
@@ -179,7 +179,7 @@ exports.boot = function (portToListen, options) {
             }
         }
         catch (e) {
-            console.log("db error", e);
+            console.log("keepie pg -- db error", e);
         }
     });
 
@@ -197,9 +197,15 @@ exports.boot = function (portToListen, options) {
             listenerCallback(listener.address());
         }
 
-        console.log("listening on ", port);
-        let keepieUrl = "http://localhost:8009/keepie/myservice/request";
-        let receiptUrl = "http://localhost:" + port + "/pg/keepie-secret/"
+        console.log("keepie pg listening on ", port);
+        opts.secretPath != undefined ? opts.secretPath : "/pg/keepie-secret/";
+
+        let defaultKeepieUrl = "http://localhost:8009/keepie/myservice/request";
+        let keepieUrl = opts.keepieUrl != undefined ? opts.keepieUrl : defaultKeepieUrl;
+
+        // How do we work out the IP?
+        let receiptUrl = "http://localhost:" + port + secretPath;
+
         let keepieResponse = await fetch(keepieUrl,{
             method: "POST",
             headers: { "X-Receipt-Url": receiptUrl }
@@ -208,6 +214,12 @@ exports.boot = function (portToListen, options) {
     });
 };
 
-exports.boot(5000);
 
-// server.js ends here
+if (require.main === module) {
+    exports.boot(5000); 
+}
+else {
+    // Required as a module; that's ok, exports will be fine.
+}
+
+// pg.js ends here
