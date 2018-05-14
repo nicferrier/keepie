@@ -54,3 +54,10 @@ There are many environmet specific things about doing this, so pg.js assumes:
 
 Lastly, one more conveniance. The randomly chosen port is also written
 to the file called "port" in the db config directory.
+
+The pg "keepie" client does several things:
+
+* it creates a pg cluster (initdb) if one does not exist
+* it allocates a random port to the db
+* it starts the db in that cluster
+* it applies the SQL it finds in the sql-scripts directory to the running DB
