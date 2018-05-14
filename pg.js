@@ -102,7 +102,7 @@ async function startDb(pgPath, dbDir) {
             };
             sqlInit.initDb(__dirname + "/sql-scripts", config);
             //await sqlInit.end();
-            console.log("are we done?");
+            console.log("keepie-pg:: db started and initialized.");
         }
     });
 
