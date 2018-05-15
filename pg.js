@@ -64,7 +64,7 @@ function eventToHappen(eventFn) {
 }
 
 function grepper(testFunction) {
-    return new Transform({
+    let t = new Transform({
         transform(chunk, encoding, callback) {
             let dataBuf = chunk.toString();
             dataBuf.split("\n").forEachAsync(testFunction);
@@ -72,6 +72,7 @@ function grepper(testFunction) {
             callback();
         }
     });
+    return t;
 }
 
 async function findPathDir(exe, path) {
@@ -105,7 +106,7 @@ async function startDb(pgPath, dbDir) {
             console.log("keepie-pg:: db started and initialized.");
         }
     });
-
+    
     let startChild = spawn(postgresPath, ["-D", dbDir]);
     startChild.stdout.pipe(process.stdout);
     startChild.stderr
@@ -154,9 +155,11 @@ exports.boot = function (portToListen, options) {
                 let socketNumber = "" + listenerAddress.port;
                 console.log("socket number", socketNumber);
                 
-                let initdbPath = pgPath + "/initdb";
+                let initdbPath = pgPath;
                 let portEnv = { "PGPORT":  socketNumber };
                 let env = { env: portEnv };
+
+                console.log("initdbPath", initdbPath);
                 let child = spawn(initdbPath, ["-D", dbDir], env);
                 child.stdout.pipe(process.stdout);
                 child.stderr.pipe(process.stderr);
@@ -213,7 +216,6 @@ exports.boot = function (portToListen, options) {
         console.log("status", keepieResponse.status);
     });
 };
-
 
 if (require.main === module) {
     exports.boot(5000); 
