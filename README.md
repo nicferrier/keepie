@@ -58,6 +58,6 @@ to the file called "port" in the db config directory.
 The pg "keepie" client does several things:
 
 * it creates a pg cluster (initdb) if one does not exist
-* it allocates a random port to the db
+* it allocates a random port to the db every time it starts
 * it starts the db in that cluster
 * it applies the SQL it finds in the sql-scripts directory to the running DB
