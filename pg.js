@@ -57,24 +57,6 @@ Array.prototype.filterAsync = async function (fn) {
     return result;
 };
 
-function eventToHappen(eventFn) {
-    return new Promise((resolve, reject) => {
-        eventFn(resolve);
-    });
-}
-
-function grepper(testFunction) {
-    let t = new Transform({
-        transform(chunk, encoding, callback) {
-            let dataBuf = chunk.toString();
-            dataBuf.split("\n").forEachAsync(testFunction);
-            this.push("pg.js::" + dataBuf);
-            callback();
-        }
-    });
-    return t;
-}
-
 async function findPathDir(exe, path) {
     path = path !== undefined ? path : process.env["PATH"];
     console.log("exe", exe);
@@ -89,29 +71,54 @@ async function findPathDir(exe, path) {
     return place;
 }
 
-async function startDb(pgPath, dbDir) {
-    let postgresPath = pgPath + "/postgres";
-    let grepping = grepper(async line => {
-        let found = /is (ready) to accept connections/.exec(line);
-        if (found !== undefined && found != null && found[1] == "ready") {
-            let port = await fs.readFileAsync(dbDir + "/port");
-            let config = {
-                user: process.env["USER"],
-                host: "localhost",
-                port: port,
-                database: "postgres"
-            };
-            sqlInit.initDb(__dirname + "/sql-scripts", config);
-            //await sqlInit.end();
-            console.log("keepie-pg:: db started and initialized.");
+
+function eventToHappen(eventFn) {
+    return new Promise((resolve, reject) => {
+        eventFn(resolve);
+    });
+}
+
+function grep (regex, fn) {
+    return new Transform({
+        transform(chunk, encoding, callback) {
+            let dataBuf = chunk.toString();
+            dataBuf.split("\n").forEach(line => {
+                let result = regex.exec(line);
+                if (result != null) {
+                    fn(result);
+                }
+            });
+            this.push("peopleserver::" + dataBuf);
+            callback();
         }
     });
-    
+}
+
+async function startDb(pgPath, dbDir) {
+    let postgresPath = pgPath + "/postgres";
     let startChild = spawn(postgresPath, ["-D", dbDir]);
+
     startChild.stdout.pipe(process.stdout);
     startChild.stderr
-        .pipe(grepping)
+        .pipe(grep(/is (ready) to accept connections/,
+                   (res => startChild.emit("accepting", res))))
         .pipe(process.stderr);
+
+    let onConnectAccept = proc => startChild.on("accepting", proc);
+    let found = await eventToHappen(onConnectAccept);
+    let [_, ready] = found;
+    if (ready == "ready") {
+        let port = await fs.readFileAsync(dbDir + "/port");
+        let config = {
+            user: process.env["USER"],
+            host: "localhost",
+            port: port,
+            database: "postgres"
+        };
+        sqlInit.initDb(__dirname + "/sql-scripts", config);
+        //await sqlInit.end();
+        console.log("keepie-pg:: db started and initialized.");
+    }
 }
 
 exports.boot = function (portToListen, options) {
