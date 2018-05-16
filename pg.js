@@ -88,7 +88,7 @@ function grep (regex, fn) {
                     fn(result);
                 }
             });
-            this.push("peopleserver::" + dataBuf);
+            this.push(dataBuf);
             callback();
         }
     });
