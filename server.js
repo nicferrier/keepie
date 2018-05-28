@@ -92,6 +92,18 @@ exports.boot = function (port, options) {
     });
 };
 
-exports.boot(8009);
+if (require.main === module) {
+    try {
+        let port = parseInt(process.args.slice(2)[0])
+        exports.boot(port);
+    }
+    catch (e) {
+        console.log("couldn't start... port?", e);
+    }
+}
+else {
+    // Required as a module; that's ok, exports will be fine.
+    exports.pgBoot = require(path.join(__dirname, "pgBoot.js"));
+}
 
 // server.js ends here
