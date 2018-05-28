@@ -1,4 +1,4 @@
-// pg - an example keepie "client" with a pg db
+// pgBoot.js - an example keepie "client" with a pg db
 // Copyright (C) 2018 by Nic Ferrier
 
 const fs = require('./fsasync.js');
@@ -8,6 +8,7 @@ const { spawn } = require("child_process");
 const { Transform } = require("stream");
 const net = require('net');
 
+const FormData = require('form-data');
 const fetch = require("node-fetch");
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -57,16 +58,14 @@ Array.prototype.filterAsync = async function (fn) {
     return result;
 };
 
-async function findPathDir(exe, path) {
-    path = path !== undefined ? path : process.env["PATH"];
-    console.log("exe", exe);
-    let pathParts = path.split(":");
+async function findPathDir(exe, pathVar) {
+    pathVar = pathVar !== undefined ? pathVar : process.env["PATH"];
+    let pathParts = pathVar.split(":");
     let existsModes = fs.constants.R_OK;
     let existing = await pathParts
         .filterAsync(async p => await fs.existsAsync(p, existsModes));
     let lists = await existing.mapAsync(async p => [p, await fs.readdirAsync(p)]);
-    let exePlaces = await lists
-        .filterAsync(async n => n[1].find(s => s==exe) !== undefined);
+    let exePlaces = lists.filter(n => n[1].find(s => s==exe) !== undefined);
     let [place, list] = exePlaces[0];
     return place;
 }
@@ -142,10 +141,72 @@ async function startDb(pgPath, dbDir) {
     console.log("keepie-pg:: db started and initialized.");
 }
 
+async function makePg(serviceName, password, pgBinDir) {
+    // Do the postgres init after the response has gone back
+    try {
+        // Do Pg init
+        let exists = await fs.promises.exists(pgBinDir);
+        let path = process.env["PATH"] + ":" + ubuntuPgPath;
+        let pgExeRoot = await findPathDir("initdb", path);
+        
+        let pgPath = pgExeRoot + "/initdb";
+        let dbDir = __dirname + "/dbdir";
+        let dbdirExists = await fs.existsAsync(dbDir);
+        if (dbdirExists) {
+            // Boot the db
+            startDb(pgExeRoot, dbDir);
+        }
+        else {
+            let listenerAddress = await getFreePort();
+            let socketNumber = "" + listenerAddress.port;
+
+            // You must supply a valid socket number
+            let portEnv = { "PGPORT":  socketNumber };
+            let env = { env: portEnv };
+
+            let initdbPath = pgPath;
+            console.log("initdbPath", initdbPath);
+            let child = spawn(initdbPath, ["-D", dbDir], env);
+            child.stdout.pipe(process.stdout);
+            child.stderr.pipe(process.stderr);
+
+            let onExit = proc => child.on("exit", proc);
+            await eventToHappen(onExit);
+
+            let runDir = dbDir + "/run";
+            fs.mkdirAsync(runDir);
+
+            // Boot it!
+            startDb(pgExeRoot, dbDir);
+        }
+    }
+    catch (e) {
+        console.log("keepie pg -- db error", e);
+    }
+}
+
+const ubuntuPgPath = "/usr/lib/postgresql/10/bin";
+
+// What other guesses can we make?
+async function guessPgBin() {
+    let exec = require("util").promisify(require("child_process").exec);
+    let lsbExe = await findPathDir("lsb_release");
+    if (lsbExe != undefined) {
+        // let ubuntuPgPath = "/usr/lib/postgresql/10/bin";
+        let { stdout, stderr } = await exec("lsb_release -a");
+        if (stdout.indexOf("Ubuntu") > -1) {
+            console.log("pgBoot running on an Ubuntu");
+            return ubuntuPgPath;
+        }
+    }
+}
+
 exports.boot = function (portToListen, options) {
     let opts = options != undefined ? options : {};
     let rootDir = opts.rootDir != undefined ? opts.rootDir : __dirname + "/www";
     let secretPath = opts.secretPath != undefined ? opts.secretPath : "/pg/keepie-secret/";
+    let serviceName = opts.serviceName != undefined ? opts.serviceName : "pg-demo";
+    let pgBinDir = opts.pgBinDir != undefined ? opts.pgBinDir : guessPgBin();
 
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({extended: true}));
@@ -153,7 +214,8 @@ exports.boot = function (portToListen, options) {
     app.post(secretPath, upload.array(), async function (req, response) {
         let data = req.body;
         let { name, password } = data;
-        if (name !== "myservice" || password === undefined) {
+        console.log("received authorization for", name);
+        if (name !== serviceName || password === undefined) {
             response.sendStatus(400);
             return;
         }
@@ -163,47 +225,24 @@ exports.boot = function (portToListen, options) {
         let onFinish = finisher => response.on("finish", finisher);
         await eventToHappen(onFinish);
 
-        // Do the postgres init after the response has gone back
-        try {
-            // Do Pg init
-            let ubuntuPgPath = "/usr/lib/postgresql/10/bin";
-            let path = process.env["PATH"] + ":" + ubuntuPgPath;
-            let pgExeRoot = await findPathDir("initdb", path);
-            
-            let pgPath = pgExeRoot + "/initdb";
-            let dbDir = __dirname + "/dbdir";
-            let dbdirExists = await fs.existsAsync(dbDir);
-            if (dbdirExists) {
-                // Boot the db
-                startDb(pgExeRoot, dbDir);
-            }
-            else {
-                let listenerAddress = await getFreePort();
-                let socketNumber = "" + listenerAddress.port;
+        // Now make the pg
+        makePg(name, password, pgBinDir);
+    });
 
-                // You must supply a valid socket number
-                let portEnv = { "PGPORT":  socketNumber };
-                let env = { env: portEnv };
+    app.post("/keepie-request", async function (req, response) {
+        let receiptUrl = req.get("x-receipt-url");
+        console.log("received internal keepie request to authorize", receiptUrl);
+        let responseEnd = block => response.on("finish", block);
+        response.sendStatus(204);
+        await eventToHappen(responseEnd);
 
-                let initdbPath = pgPath;
-                console.log("initdbPath", initdbPath);
-                let child = spawn(initdbPath, ["-D", dbDir], env);
-                child.stdout.pipe(process.stdout);
-                child.stderr.pipe(process.stderr);
-
-                let onExit = proc => child.on("exit", proc);
-                await eventToHappen(onExit);
-
-                let runDir = dbDir + "/run";
-                fs.mkdirAsync(runDir);
-
-                // Boot it!
-                startDb(pgExeRoot, dbDir);
-            }
-        }
-        catch (e) {
-            console.log("keepie pg -- db error", e);
-        }
+        console.log("keepie response ended - processing request");
+        let fd = new FormData();
+        fd.append("password", "Secret1234567!");
+        fd.append("name", serviceName);
+        let authorizationReceiptUrl = "http://localhost:" + app.port + secretPath;
+        console.log("keepie authorization sending to", authorizationReceiptUrl);
+        fd.submit(authorizationReceiptUrl);
     });
 
     // Standard app callback stuff
@@ -213,32 +252,48 @@ exports.boot = function (portToListen, options) {
     }
 
     let listener = app.listen(portToListen, "localhost", async function () {
-        let port = listener.address().port;
+        let addr = listener.address();
+        app.port = addr.port;
 
         let listenerCallback = opts.listenerCallback;
         if (typeof(listenerCallback) === "function") {
             listenerCallback(listener.address());
         }
 
-        console.log("keepie pg listening on ", port);
-        opts.secretPath != undefined ? opts.secretPath : "/pg/keepie-secret/";
+        console.log("keepie pg listening on ", app.port);
 
-        let defaultKeepieUrl = "http://localhost:8009/keepie/myservice/request";
+        // Where do we receive passwords from keepie?
+        let passwordReceiptUrl =
+            "http://" + addr.address + ":" + addr.port + secretPath;
+
+        // What address do we call keepie on? by default this server (for dev)
+        let defaultKeepieUrl = process.env["KEEPIEURL"];
+        if (defaultKeepieUrl == undefined || defaultKeepieUrl == "") {
+            defaultKeepieUrl =
+                "http://" + addr.address + ":" + addr.port + "/keepie-request";
+        }
+
+        // Allow it to be defined in the opts
         let keepieUrl = opts.keepieUrl != undefined ? opts.keepieUrl : defaultKeepieUrl;
 
-        // How do we work out the IP?
-        let receiptUrl = "http://localhost:" + port + secretPath;
-
+        // And get the keepie response
+        console.log("fetching keepie auth from", keepieUrl, "to", passwordReceiptUrl);
         let keepieResponse = await fetch(keepieUrl,{
             method: "POST",
-            headers: { "X-Receipt-Url": receiptUrl }
+            headers: { "X-Receipt-Url": passwordReceiptUrl }
         });
-        console.log("status", keepieResponse.status);
+        console.log("keepie status", keepieResponse.status);
     });
 };
 
 if (require.main === module) {
-    exports.boot(5000); 
+    try {
+        let port = parseInt(process.argv.slice(2)[0])
+        exports.boot(port);
+    }
+    catch (e) {
+        console.log("couldn't start... port?", e);
+    }
 }
 else {
     // Required as a module; that's ok, exports will be fine.
