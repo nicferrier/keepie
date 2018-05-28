@@ -58,7 +58,6 @@ There are many environment specific things about doing this, so
 pgBoot.js assumes:
 
 * the use of initdb to create the server locally
-* the path of initdb as of ubuntu 16 postgresql-10 package
 * a made up port is used
 
 Lastly, one more convenience. The randomly chosen port is also written
@@ -70,6 +69,13 @@ The pg "keepie" client does several things:
 * it allocates a random port to the db every time it starts
 * it starts the db in that cluster
 * it applies the SQL it finds in the sql-scripts directory to the running DB
+
+### What operating systems support pgBoot.js?
+
+pgBoot.js has been tested on:
+
+* Windows 10 with postgresql 10
+* Ubuntu 16 with postgresql 10
 
 
 ### Using pgBoot.js on the command line
@@ -129,3 +135,20 @@ it:
 * `appCallback` - a function, called with the express app so you can configure routes.
 * `listenerCallback` - a function, called with the listener address so you can enquire of the listener.
   
+
+
+## Keepie and other databases?
+
+Is Keepie postgresql specific? No. The only implementation for Keepie
+behaviour is with Postgresql but any database would support it.
+
+There is one caveat, Keepie works best when creating the database, so
+that it can initially create the authentication and no human will ever
+know. Keepie for MySql or ELK or Mongo would work well.
+
+A lot of more traditional databases seem to have a manual installation
+process where a human creates a password.
+
+Keepie could support this mechanism if it had a UI to allow the
+password to be set up. But that is left as an extension for the user
+since it will depend on so much in the environment.
