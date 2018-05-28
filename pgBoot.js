@@ -215,12 +215,12 @@ async function guessPgBin() {
     }
 }
 
-exports.boot = function (portToListen, options) {
+exports.boot = async function (portToListen, options) {
     let opts = options != undefined ? options : {};
     let rootDir = opts.rootDir != undefined ? opts.rootDir : __dirname + "/www";
     let secretPath = opts.secretPath != undefined ? opts.secretPath : "/pg/keepie-secret/";
     let serviceName = opts.serviceName != undefined ? opts.serviceName : "pg-demo";
-    let pgBinDir = opts.pgBinDir != undefined ? opts.pgBinDir : guessPgBin();
+    let pgBinDir = opts.pgBinDir != undefined ? opts.pgBinDir : await guessPgBin();
 
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({extended: true}));
