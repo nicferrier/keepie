@@ -4,7 +4,8 @@ The idea of keepie is that it holds passwords for you and can hand
 them out to services that are authorized to receive them.
 
 The protocol is simple. A service requiring a password sends a request
-to Keepie with the receipt url as a the header:
+to Keepie for a password for a specified service, with the receipt url
+as a the header:
 
 ```
 X-Receipt-Url
@@ -17,6 +18,12 @@ curl -X POST \
      -H "X-Receipt-Url: http://localhost:5000/password" \
      http://localhost/keepie/myservice/request
 ```
+
+The service we're requesting authorization for is called
+`myservice`. 
+
+We want to receive the password for it, if we're authorized, on the
+url: `http://localhost:5000/password`
 
 Keepie will accept the request with a 204 and then add it to it's
 requests queue.
@@ -38,6 +45,7 @@ curl -F "password=somesecret" \
 Keepie is extremely simple and only does a very small, simple
 thing. But it enables services that want to own things that need
 credentials (like databases) to operate in a disposable way.
+
 
 ## Keepie Postgresql example - pgBoot.js
 
@@ -116,6 +124,8 @@ it:
   is also picked up from the environment variable KEEPIEURL though the
   option takes precedence; by default this is the local pgBoot server,
   which makes development easier
+* `serviceName` - the authorization name, the service to request authorization for
+* `pgBinDir` - a place where we'll find the pg binaries, we'll try to guess if not specified
 * `appCallback` - a function, called with the express app so you can configure routes.
 * `listenerCallback` - a function, called with the listener address so you can enquire of the listener.
   

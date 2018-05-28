@@ -8,14 +8,14 @@ Array.prototype.forEachAsync = async function (fn) {
 };
 
 exports.initDb = async function (directory, dbConfig) {
-    let entries = await fs.readdirAsync(directory);
+    let entries = await fs.promsies.readdir(directory);
     let filtered = entries.filter(entry => !entry.endsWith("~"));
     
     let client = new Client(dbConfig)
     await client.connect()
 
     await filtered.forEachAsync(async entry => {
-        let file = await fs.readFileAsync(directory + "/" + entry);
+        let file = await fs.promises.readFile(directory + "/" + entry);
         let statements = file.split("\n\n");
         let sqlToRun = statements.filter(statement => !statement.startsWith("--"));
 
