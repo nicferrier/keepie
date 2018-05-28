@@ -75,7 +75,6 @@ async function findPathDir(exe, pathVar) {
     }
 }
 
-
 function eventToHappen(eventFn) {
     return new Promise((resolve, reject) => {
         eventFn(resolve);
@@ -150,9 +149,12 @@ async function makePg(serviceName, password, pgBinDir) {
     // Do the postgres init after the response has gone back
     try {
         // Do Pg init
+        let pgBinPath = process.env["PATH"];
         let exists = await fs.promises.exists(pgBinDir);
-        let path = process.env["PATH"] + ":" + ubuntuPgPath;
-        let pgExeRoot = await findPathDir("initdb", path);
+        if (exists) {
+            pgBinPath = pgBinPath + path.delimiter + pgBinDir;
+        }
+        let pgExeRoot = await findPathDir("initdb", pgBinPath);
         
         let pgPath = pgExeRoot + "/initdb";
         let dbDir = __dirname + "/dbdir";
