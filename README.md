@@ -39,20 +39,21 @@ Keepie is extremely simple and only does a very small, simple
 thing. But it enables services that want to own things that need
 credentials (like databases) to operate in a disposable way.
 
-## Keepie Postgresql example 
+## Keepie Postgresql example - pgBoot.js
 
-Included is an example server called pg.js.
+Included is an example server called pgBoot.js.
 
 When started this will attempt to talk to Keepie and, when it receives
 a password, create a postgresql server.
 
-There are many environmet specific things about doing this, so pg.js assumes:
+There are many environment specific things about doing this, so
+pgBoot.js assumes:
 
 * the use of initdb to create the server locally
 * the path of initdb as of ubuntu 16 postgresql-10 package
 * a made up port is used
 
-Lastly, one more conveniance. The randomly chosen port is also written
+Lastly, one more convenience. The randomly chosen port is also written
 to the file called "port" in the db config directory.
 
 The pg "keepie" client does several things:
@@ -61,3 +62,60 @@ The pg "keepie" client does several things:
 * it allocates a random port to the db every time it starts
 * it starts the db in that cluster
 * it applies the SQL it finds in the sql-scripts directory to the running DB
+
+
+### Using pgBoot.js on the command line
+
+You can use pgBoot.js to run your own Keepie based service with
+Postgresql.
+
+Run it as a server on it's own:
+
+```
+node pgBoot.js 5000
+```
+
+will start a server on port 5000 routing it's own service and a keepie
+service which will authorize itself and hand out the password
+"Secret1234567!".
+
+It will boot it's own Postgres using whatever method it can find, or
+die.
+
+### Using pgBoot.js as a module
+
+You still have to use it's server:
+
+```
+const pgBoot = require("keepie").pgBoot;
+
+pgBoot.boot(8004, {
+   appCallback: function (app) {
+     app.get("/status", function (req, res) {
+        res.json({ up: true });
+     });
+   }
+});
+```
+
+pgBoot.js allows you to start the server and provide additional routes
+through an `appCallback`.
+
+There's also a `listenerCallback`. See customization below.
+
+
+### Customizing pgBoot.js
+
+If you run pgBoot.js you can pass several options to it to configure
+it:
+
+* `secretPath` - the path which your handler is using to receive
+  requests from keepie; you will have to configure this in a keepie
+  authorizing your service
+* `keepieUrl` - the URL to send Keepie authorization requests to; this
+  is also picked up from the environment variable KEEPIEURL though the
+  option takes precedence; by default this is the local pgBoot server,
+  which makes development easier
+* `appCallback` - a function, called with the express app so you can configure routes.
+* `listenerCallback` - a function, called with the listener address so you can enquire of the listener.
+  
