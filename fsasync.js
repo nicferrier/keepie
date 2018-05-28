@@ -1,8 +1,8 @@
 // fsasync stuff
 
 const fs = require("fs");
-
-fs.readdirAsync = function (folder) {
+fs.promises = {};
+fs.promises.readdir = function (folder) {
     return new Promise(function (resolve, reject) {
         try {
             fs.readdir(folder, function (err, files) {
@@ -16,7 +16,7 @@ fs.readdirAsync = function (folder) {
     });
 };
 
-fs.readFileAsync = function (filename, encoding) {
+fs.promises.readFile = function (filename, encoding) {
     return new Promise(function (resolve, reject) {
         try {
             let enc = (encoding === undefined) ? "utf8" : encoding;
@@ -31,7 +31,7 @@ fs.readFileAsync = function (filename, encoding) {
     });
 };
 
-fs.writeFileAsync = function (filename, data, encoding) {
+fs.promises.writeFile = function (filename, data, encoding) {
     return new Promise(function (resolve, reject) {
         try {
             let enc = encoding === undefined ? "utf8" : encoding;
@@ -46,7 +46,7 @@ fs.writeFileAsync = function (filename, data, encoding) {
     });
 };
 
-fs.statAsync = function (path) {
+fs.promises.stat = function (path) {
     return new Promise(function (resolve, reject) {
         try {
             fs.stat(path, function (statObj, err) {
@@ -60,7 +60,7 @@ fs.statAsync = function (path) {
     });
 };
 
-fs.existsAsync = function (path, modes) {
+fs.promises.exists = function (path, modes) {
     modes = modes !== undefined ? modes : fs.constants.R_OK | fs.constants.W_OK;
     return new Promise((resolve, reject) => {
         try {
@@ -75,7 +75,7 @@ fs.existsAsync = function (path, modes) {
     });
 };
 
-fs.mkdirAsync = function (path) {
+fs.promises.mkdir = function (path) {
     return new Promise((resolve, reject) => {
         try {
             fs.mkdir(path, err => {

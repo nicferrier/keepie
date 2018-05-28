@@ -7,6 +7,7 @@ const crypto = require("crypto");
 const { spawn } = require("child_process");
 const { Transform } = require("stream");
 const net = require('net');
+const path = require("path");
 
 const FormData = require('form-data');
 const fetch = require("node-fetch");
@@ -60,14 +61,18 @@ Array.prototype.filterAsync = async function (fn) {
 
 async function findPathDir(exe, pathVar) {
     pathVar = pathVar !== undefined ? pathVar : process.env["PATH"];
-    let pathParts = pathVar.split(":");
+    let pathParts = pathVar.split(path.delimiter);
     let existsModes = fs.constants.R_OK;
     let existing = await pathParts
-        .filterAsync(async p => await fs.existsAsync(p, existsModes));
-    let lists = await existing.mapAsync(async p => [p, await fs.readdirAsync(p)]);
-    let exePlaces = lists.filter(n => n[1].find(s => s==exe) !== undefined);
-    let [place, list] = exePlaces[0];
-    return place;
+        .filterAsync(async p => await fs.promises.exists(p, existsModes));
+    let lists = await existing.mapAsync(
+        async p => [p, await fs.promises.readdir(p)]
+    );
+    let exePlaces = lists.filter(n => n[1].find(s => s==exe || s==exe + ".exe") !== undefined);
+    if (exePlaces.length > 0) {
+        let [place, list] = exePlaces[0];
+        return place;
+    }
 }
 
 
@@ -100,7 +105,7 @@ async function startDb(pgPath, dbDir) {
                 
     // rewrite the port in postgresql.conf
     let config = dbDir + "/postgresql.conf";
-    let file = await fs.readFileAsync(config);
+    let file = await fs.promises.readFile(config);
     let portChanged = file.replace(
             /^[#]*port = .*/gm, "port = " + socketNumber
     );
@@ -110,8 +115,8 @@ async function startDb(pgPath, dbDir) {
             /^[#]*unix_socket_directories = .*/gm,
         "unix_socket_directories = '" + runDir + "'"
     );
-    await fs.writeFileAsync(config, sockDirChanged);
-    await fs.writeFileAsync(dbDir + "/port", socketNumber);
+    await fs.promises.writeFile(config, sockDirChanged);
+    await fs.promises.writeFile(dbDir + "/port", socketNumber);
 
     let postgresPath = pgPath + "/postgres";
     let startChild = spawn(postgresPath, ["-D", dbDir]);
@@ -151,7 +156,7 @@ async function makePg(serviceName, password, pgBinDir) {
         
         let pgPath = pgExeRoot + "/initdb";
         let dbDir = __dirname + "/dbdir";
-        let dbdirExists = await fs.existsAsync(dbDir);
+        let dbdirExists = await fs.promises.exists(dbDir);
         if (dbdirExists) {
             // Boot the db
             startDb(pgExeRoot, dbDir);
@@ -174,7 +179,7 @@ async function makePg(serviceName, password, pgBinDir) {
             await eventToHappen(onExit);
 
             let runDir = dbDir + "/run";
-            fs.mkdirAsync(runDir);
+            fs.promises.mkdir(runDir);
 
             // Boot it!
             startDb(pgExeRoot, dbDir);
@@ -198,6 +203,11 @@ async function guessPgBin() {
             console.log("pgBoot running on an Ubuntu");
             return ubuntuPgPath;
         }
+    }
+    let sandboxPg = path.join("/sandbox", "pgsql", "bin");
+    let sandboxed = await findPathDir("pg_ctl", sandboxPg);
+    if (sandboxed) {
+        return sandboxPg;
     }
 }
 
