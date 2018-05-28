@@ -192,9 +192,11 @@ async function makePg(serviceName, password, pgBinDir) {
 
 const ubuntuPgPath = "/usr/lib/postgresql/10/bin";
 
-// What other guesses can we make?
+// What other guesses can we make? what about Redhat?
 async function guessPgBin() {
     let exec = require("util").promisify(require("child_process").exec);
+
+    // Might indicate Ubuntu usage
     let lsbExe = await findPathDir("lsb_release");
     if (lsbExe != undefined) {
         // let ubuntuPgPath = "/usr/lib/postgresql/10/bin";
@@ -204,6 +206,8 @@ async function guessPgBin() {
             return ubuntuPgPath;
         }
     }
+
+    // Might be a common Windows path
     let sandboxPg = path.join("/sandbox", "pgsql", "bin");
     let sandboxed = await findPathDir("pg_ctl", sandboxPg);
     if (sandboxed) {
