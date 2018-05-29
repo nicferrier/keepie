@@ -25,7 +25,7 @@ The service we're requesting authorization for is called
 We want to receive the password for it, if we're authorized, on the
 url: `http://localhost:5000/password`
 
-Keepie will accept the request with a 204 and then add it to it's
+Keepie will accept the request with a 204 and then add it to its
 requests queue.
 
 The requests queue is processed constantly. Requests for passwords for
@@ -83,22 +83,22 @@ pgBoot.js has been tested on:
 You can use pgBoot.js to run your own Keepie based service with
 Postgresql.
 
-Run it as a server on it's own:
+Run it as a server on its own:
 
 ```
 node pgBoot.js 5000
 ```
 
-will start a server on port 5000 routing it's own service and a keepie
+will start a server on port 5000 routing its own service and a keepie
 service which will authorize itself and hand out the password
 "Secret1234567!".
 
-It will boot it's own Postgres using whatever method it can find, or
+It will boot its own Postgres using whatever method it can find, or
 die.
 
 ### Using pgBoot.js as a module
 
-You still have to use it's server:
+You still have to use its server:
 
 ```
 const pgBoot = require("keepie").pgBoot;
