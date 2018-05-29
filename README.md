@@ -162,6 +162,10 @@ it:
 * `appCallback` - a function, called with the express app so you can configure routes.
 * `listenerCallback` - a function, called with the listener address so you can enquire of the listener.
 * `sqlScriptsDir` - a path to a directory containing SQL scripts to initialize the db
+* `dbDir` - a path to where to store the db files
+* `pgPoolConfig` - see [pgPool](https://node-postgres.com/api/pool) about config for the postgres connection pool
+
+*Note: in `pgPoolConfig` authentication or host details are ignored.*
 
 ### SQL scripts and initialization
 

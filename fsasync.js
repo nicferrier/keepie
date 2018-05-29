@@ -2,6 +2,7 @@
 
 const fs = require("fs");
 fs.promises = {};
+
 fs.promises.readdir = function (folder) {
     return new Promise(function (resolve, reject) {
         try {

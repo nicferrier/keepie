@@ -105,21 +105,21 @@ async function startDb(pgPath, dbDir, sqlScriptsDir) {
     let socketNumber = "" + listenerAddress.port;
                 
     // rewrite the port in postgresql.conf
-    let config = dbDir + "/postgresql.conf";
+    let config = path.join(dbDir, "/postgresql.conf");
     let file = await fs.promises.readFile(config);
     let portChanged = file.replace(
             /^[#]*port = .*/gm, "port = " + socketNumber
     );
 
-    let runDir = dbDir + "/run";
+    let runDir = path.join(dbDir, "/run");
     let sockDirChanged = portChanged.replace(
             /^[#]*unix_socket_directories = .*/gm,
         "unix_socket_directories = '" + runDir + "'"
     );
     await fs.promises.writeFile(config, sockDirChanged);
-    await fs.promises.writeFile(dbDir + "/port", socketNumber);
+    await fs.promises.writeFile(path.join(dbDir,"/port"), socketNumber);
 
-    let postgresPath = pgPath + "/postgres";
+    let postgresPath = path.join(pgPath, "/postgres");
     let startChild = spawn(postgresPath, ["-D", dbDir]);
 
     startChild.stdout.pipe(process.stdout);
@@ -144,17 +144,17 @@ async function startDb(pgPath, dbDir, sqlScriptsDir) {
     };
 
     sqlInit.events.on("sqlFile", evt => exports.events.emit("sqlFile", evt));
-    let pgPool = sqlInit.initDb(sqlScriptsDir, dbConfig);
+    let pgPool = await sqlInit.initDb(sqlScriptsDir, dbConfig);
 
     exports.events.emit("dbUp", {
         pgPool: pgPool
     });
-
+    
     //await sqlInit.end();
-    console.log("keepie-pg:: db started and initialized on", socketNumber);
+    console.log("keepie-pgBoot:: db started and initialized on", socketNumber);
 }
 
-async function makePg(serviceName, password, pgBinDir, sqlScriptsDir) {
+async function makePg(serviceName, password, pgBinDir, dbDir, sqlScriptsDir) {
     // Do the postgres init after the response has gone back
     try {
         // Do Pg init
@@ -169,12 +169,11 @@ async function makePg(serviceName, password, pgBinDir, sqlScriptsDir) {
             throw new Error("cant find postgres initdb");
         }
         
-        let pgPath = pgExeRoot + "/initdb";
-        let dbDir = __dirname + "/dbdir";
+        let pgPath = path.join(pgExeRoot, "/initdb");
         let dbdirExists = await fs.promises.exists(dbDir);
         if (dbdirExists) {
             // Boot the db
-            startDb(pgExeRoot, dbDir);
+            startDb(pgExeRoot, dbDir, sqlScriptsDir);
         }
         else {
             let listenerAddress = await getFreePort();
@@ -185,7 +184,7 @@ async function makePg(serviceName, password, pgBinDir, sqlScriptsDir) {
             let env = { env: portEnv };
 
             let initdbPath = pgPath;
-            console.log("initdbPath", initdbPath);
+            console.log("keepie pgBoot initdbPath", initdbPath);
             let child = spawn(initdbPath, [
                 "-D", dbDir, "-E=UTF8", "--locale=C", "-U", "postgres"
             ], env);
@@ -195,7 +194,7 @@ async function makePg(serviceName, password, pgBinDir, sqlScriptsDir) {
             let onExit = proc => child.on("exit", proc);
             await eventToHappen(onExit);
 
-            let runDir = dbDir + "/run";
+            let runDir = path.join(dbDir, "/run");
             fs.promises.mkdir(runDir);
 
             // Boot it!
@@ -242,7 +241,21 @@ exports.boot = async function (portToListen, options) {
     let pgBinDir = opts.pgBinDir != undefined ? opts.pgBinDir : await guessPgBin();
     let sqlScriptsDir = opts.sqlScriptsDir != undefined
         ?  opts.sqlScriptsDir : path.join(__dirname, "sql-scripts");
+    let dbDir = opts.dbDir != undefined ? opts.dbDir : path.join(__dirname, "dbdir");
+    let pgPoolConfig = opts.pgPoolConfig != undefined
+        ? opts.pgPoolConfig : {  // default pgPool config
+            max: 10,
+            idleTimeoutMillis: 30 * 1000,
+            connectionTimeoutMillis: 2 * 1000
+        };
 
+    // Ensure we don't have keys we don't want
+    Object.keys(pgPoolConfig).forEach(key => {
+        if (["user", "host", "port"].includes(key)) {
+            delete pgPoolConfig[key];
+        }
+    });
+    
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({extended: true}));
 
@@ -261,7 +274,7 @@ exports.boot = async function (portToListen, options) {
         await eventToHappen(onFinish);
 
         // Now make the pg
-        makePg(name, password, pgBinDir, sqlScriptsDir);
+        makePg(name, password, pgBinDir, dbDir, sqlScriptsDir);
     });
 
     app.post("/keepie-request", async function (req, response) {
