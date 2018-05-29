@@ -135,7 +135,7 @@ async function startDb(pgPath, dbDir) {
     }
 
     let dbConfig = {
-        user: process.env["USER"],
+        user: "postgres", // process.env["USER"],
         host: "localhost",
         port: socketNumber,
         database: "postgres"
@@ -178,7 +178,7 @@ async function makePg(serviceName, password, pgBinDir) {
             let initdbPath = pgPath;
             console.log("initdbPath", initdbPath);
             let child = spawn(initdbPath, [
-                "-D", dbDir, "-E=UTF8", "--locale=C"
+                "-D", dbDir, "-E=UTF8", "--locale=C", "-U", "postgres"
             ], env);
             child.stdout.pipe(process.stdout);
             child.stderr.pipe(process.stderr);
