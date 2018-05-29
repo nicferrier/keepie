@@ -3,9 +3,9 @@
 The idea of keepie is that it holds passwords for you and can hand
 them out to services that are authorized to receive them.
 
-The protocol is simple. A service requiring a password sends a request
-to Keepie for a password for a specified service, with the receipt url
-as a the header:
+The protocol is simple. A service requiring a password sends an
+authorization request to Keepie for a password for a specified
+service, with the receipt url as a the header:
 
 ```
 X-Receipt-Url
@@ -46,6 +46,14 @@ Keepie is extremely simple and only does a very small, simple
 thing. But it enables services that want to own things that need
 credentials (like databases) to operate in a disposable way.
 
+## How to start Keepie
+
+From the command line, simply:
+
+```
+node server.js
+```
+
 
 ## Keepie Postgresql example - pgBoot.js
 
@@ -54,21 +62,16 @@ Included is an example server called pgBoot.js.
 When started this will attempt to talk to Keepie and, when it receives
 a password, create a postgresql server.
 
-There are many environment specific things about doing this, so
-pgBoot.js assumes:
-
-* the use of initdb to create the server locally
-* a made up port is used
-
-Lastly, one more convenience. The randomly chosen port is also written
-to the file called "port" in the db config directory.
-
-The pg "keepie" client does several things:
+pgBoot.js does several things:
 
 * it creates a pg cluster (initdb) if one does not exist
+ * the cluster has locale POSIX, or *C* in Postgresql convention
+ * the cluster is owned by user `postgres`
+ * the cluster has encoding UTF8
 * it allocates a random port to the db every time it starts
 * it starts the db in that cluster
 * it applies the SQL it finds in the sql-scripts directory to the running DB
+
 
 ### What operating systems support pgBoot.js?
 
@@ -146,9 +149,16 @@ There is one caveat, Keepie works best when creating the database, so
 that it can initially create the authentication and no human will ever
 know. Keepie for MySql or ELK or Mongo would work well.
 
-A lot of more traditional databases seem to have a manual installation
-process where a human creates a password.
+More traditional databases seem to have a manual installation process
+where a human creates a password.
 
 Keepie could support this mechanism if it had a UI to allow the
-password to be set up. But that is left as an extension for the user
-since it will depend on so much in the environment.
+password to be entered once. Perhaps Keepie would then immediately
+alter the password so the human no longer knows it, although break
+glass scenarios should be considered too.
+
+In this way, Keepie would look more like a traditional password store,
+but not for humans.
+
+Because of the organizational complexity around these sorts of
+problems this is left as an exercise for the reader.
