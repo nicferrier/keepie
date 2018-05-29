@@ -150,11 +150,15 @@ async function makePg(serviceName, password, pgBinDir) {
     try {
         // Do Pg init
         let pgBinPath = process.env["PATH"];
-        let exists = await fs.promises.exists(pgBinDir);
+        let exists = await fs.promises.exists(pgBinDir, fs.constants.R_OK);
         if (exists) {
             pgBinPath = pgBinPath + path.delimiter + pgBinDir;
         }
         let pgExeRoot = await findPathDir("initdb", pgBinPath);
+
+        if (pgExeRoot == undefined) {
+            throw new Error("cant find postgres initdb");
+        }
         
         let pgPath = pgExeRoot + "/initdb";
         let dbDir = __dirname + "/dbdir";
@@ -173,7 +177,9 @@ async function makePg(serviceName, password, pgBinDir) {
 
             let initdbPath = pgPath;
             console.log("initdbPath", initdbPath);
-            let child = spawn(initdbPath, ["-D", dbDir], env);
+            let child = spawn(initdbPath, [
+                "-D", dbDir, "-E", "UTF8"
+            ], env);
             child.stdout.pipe(process.stdout);
             child.stderr.pipe(process.stderr);
 
@@ -213,6 +219,7 @@ async function guessPgBin() {
     let sandboxPg = path.join("/sandbox", "pgsql", "bin");
     let sandboxed = await findPathDir("pg_ctl", sandboxPg);
     if (sandboxed) {
+        console.log("pgBoot possibly running on Windows");
         return sandboxPg;
     }
 }
