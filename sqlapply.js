@@ -8,7 +8,7 @@ Array.prototype.forEachAsync = async function (fn) {
 };
 
 exports.initDb = async function (directory, dbConfig) {
-    let entries = await fs.promsies.readdir(directory);
+    let entries = await fs.promises.readdir(directory);
     let filtered = entries.filter(entry => !entry.endsWith("~"));
     
     let client = new Client(dbConfig)
