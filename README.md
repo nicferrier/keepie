@@ -126,7 +126,8 @@ receive the connection detail from Keepie right now:
 ```
 const pgBoot = require("keepie").pgBoot;
 
-pgBoot.events.on("dbUp", async pgPool => {
+pgBoot.events.on("dbUp", async dbDetails => {
+   let { pgPool } = dbDetails;
    let client = pgPool.connect();
    try {
       let result = await client.query("SELECT now();");
