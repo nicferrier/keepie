@@ -3,7 +3,7 @@
     "name": "keepie",
     "description": "Keepie keeps passwords",
     "license": "MIT",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "keywords": ["postgresql", "microservice"],
     "repository": {
         "type": "git",
@@ -14,7 +14,6 @@
         "test": "./test.js"
     },
     "dependencies": {
-        "bcrypt": "^2.0.1",
         "body-parser": "1.17.1",
         "cookie-parser": "^1.4.3",
         "express": "4.14.0",
