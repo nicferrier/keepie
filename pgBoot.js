@@ -8,14 +8,13 @@ const { spawn } = require("child_process");
 const { Transform } = require("stream");
 const net = require('net');
 const path = require("path");
+const EventEmitter = require("events");
 
 const FormData = require('form-data');
 const fetch = require("node-fetch");
 const express = require("express");
 const bodyParser = require("body-parser");
 const multer  = require('multer')
-
-const { Client } = require('pg');
 const sqlInit = require("./sqlapply.js");
 
 const app = express();
@@ -97,7 +96,10 @@ function grep (regex, fn) {
     });
 }
 
-async function startDb(pgPath, dbDir) {
+// Events that we might expose
+exports.events = new EventEmitter();
+
+async function startDb(pgPath, dbDir, sqlScriptsDir) {
     // Get a spare socket
     let listenerAddress = await getFreePort();
     let socketNumber = "" + listenerAddress.port;
@@ -135,17 +137,24 @@ async function startDb(pgPath, dbDir) {
     }
 
     let dbConfig = {
-        user: "postgres", // process.env["USER"],
+        user: "postgres",
         host: "localhost",
         port: socketNumber,
         database: "postgres"
     };
-    sqlInit.initDb(__dirname + "/sql-scripts", dbConfig);
+
+    sqlInit.events.on("sqlFile", evt => exports.events.emit("sqlFile", evt));
+    let pgPool = sqlInit.initDb(sqlScriptsDir, dbConfig);
+
+    exports.events.emit("dbUp", {
+        pgPool: pgPool
+    });
+
     //await sqlInit.end();
     console.log("keepie-pg:: db started and initialized on", socketNumber);
 }
 
-async function makePg(serviceName, password, pgBinDir) {
+async function makePg(serviceName, password, pgBinDir, sqlScriptsDir) {
     // Do the postgres init after the response has gone back
     try {
         // Do Pg init
@@ -190,7 +199,7 @@ async function makePg(serviceName, password, pgBinDir) {
             fs.promises.mkdir(runDir);
 
             // Boot it!
-            startDb(pgExeRoot, dbDir);
+            startDb(pgExeRoot, dbDir, sqlScriptsDir);
         }
     }
     catch (e) {
@@ -227,9 +236,12 @@ async function guessPgBin() {
 exports.boot = async function (portToListen, options) {
     let opts = options != undefined ? options : {};
     let rootDir = opts.rootDir != undefined ? opts.rootDir : __dirname + "/www";
-    let secretPath = opts.secretPath != undefined ? opts.secretPath : "/pg/keepie-secret/";
+    let secretPath = opts.secretPath != undefined
+        ? opts.secretPath : "/pg/keepie-secret/";
     let serviceName = opts.serviceName != undefined ? opts.serviceName : "pg-demo";
     let pgBinDir = opts.pgBinDir != undefined ? opts.pgBinDir : await guessPgBin();
+    let sqlScriptsDir = opts.sqlScriptsDir != undefined
+        ?  opts.sqlScriptsDir : path.join(__dirname, "sql-scripts");
 
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({extended: true}));
@@ -249,7 +261,7 @@ exports.boot = async function (portToListen, options) {
         await eventToHappen(onFinish);
 
         // Now make the pg
-        makePg(name, password, pgBinDir);
+        makePg(name, password, pgBinDir, sqlScriptsDir);
     });
 
     app.post("/keepie-request", async function (req, response) {

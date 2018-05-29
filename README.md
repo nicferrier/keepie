@@ -70,7 +70,7 @@ pgBoot.js does several things:
  * the cluster has encoding UTF8
 * it allocates a random port to the db every time it starts
 * it starts the db in that cluster
-* it applies the SQL it finds in the sql-scripts directory to the running DB
+* it applies the SQL it finds in a sql-scripts directory to the running DB
 
 
 ### What operating systems support pgBoot.js?
@@ -120,6 +120,29 @@ through an `appCallback`.
 
 There's also a `listenerCallback`. See customization below.
 
+pgBoot.js also provides an event interface. This is the only way to
+receive the connection detail from Keepie right now:
+
+```
+const pgBoot = require("keepie").pgBoot;
+
+pgBoot.events.on("dbUp", async pgPool => {
+   let client = pgPool.connect();
+   try {
+      let result = await client.query("SELECT now();");
+      return result;
+   }
+   finally {
+      client.release();
+   }
+});
+```
+
+The events that pgBoot.js sends are:
+
+* `sqlFile` - a sql file is being executed, passed the filename of the file
+* `dbUp` - the db has been started, the pg pool to connect is a parameter
+
 
 ### Customizing pgBoot.js
 
@@ -137,8 +160,15 @@ it:
 * `pgBinDir` - a place where we'll find the pg binaries, we'll try to guess if not specified
 * `appCallback` - a function, called with the express app so you can configure routes.
 * `listenerCallback` - a function, called with the listener address so you can enquire of the listener.
-  
+* `sqlScriptsDir` - a path to a directory containing SQL scripts to initialize the db
 
+### SQL scripts and initialization
+
+Through the option `sqlScriptsDir` pgBoot.js will apply sql scripts
+whenever it starts the database.  
+
+But pgBoot.js makes no attempt to keep versioning of these scripts so
+*you must write these scripts to apply safely* to the database.
 
 ## Keepie and other databases?
 
