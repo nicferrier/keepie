@@ -175,6 +175,12 @@ whenever it starts the database.
 But pgBoot.js makes no attempt to keep versioning of these scripts so
 *you must write these scripts to apply safely* to the database.
 
+### A full end to end example of pgBoot.js
+
+[See here](https://github.com/nicferrier/keepie/blob/master/pgbootdemo.js)
+for a full example of how to configure and work with pgBoot.js to
+start and use a Postgresql database.
+
 ## Keepie and other databases?
 
 Is Keepie postgresql specific? No. The only implementation for Keepie
