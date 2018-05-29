@@ -2,7 +2,9 @@
     "author": "nic ferrier, nic@ferrier.me.uk",
     "name": "keepie",
     "description": "Keepie keeps passwords",
+    "license": "MIT",
     "version": "0.0.1",
+    "keywords": ["postgresql", "microservice"],
     "repository": {
         "type": "git",
         "url": "https://github.com/nicferrier/keepie"
