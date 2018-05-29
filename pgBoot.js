@@ -178,7 +178,7 @@ async function makePg(serviceName, password, pgBinDir) {
             let initdbPath = pgPath;
             console.log("initdbPath", initdbPath);
             let child = spawn(initdbPath, [
-                "-D", dbDir, "-E", "UTF8"
+                "-D", dbDir, "-E=UTF8", "--locale=C"
             ], env);
             child.stdout.pipe(process.stdout);
             child.stderr.pipe(process.stderr);
