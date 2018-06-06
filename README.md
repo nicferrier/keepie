@@ -167,6 +167,19 @@ it:
 
 *Note: in `pgPoolConfig` authentication or host details are ignored.*
 
+### How does pgBoot.js guess where the PG binaries are?
+
+pgBoot.js is looking for `initdb` and `postgresql` binaries and uses
+some tricks to find them on installations that I know.
+
+The first trick is quite portable though, it looks in `PGBIN`
+environment variable.
+
+This variable can point to the bin directory where `initdb` and
+`postgresql` binaries are. If the variable exists and points to a
+thing then it is accepted as truth.
+
+
 ### SQL scripts and initialization
 
 Through the option `sqlScriptsDir` pgBoot.js will apply sql scripts

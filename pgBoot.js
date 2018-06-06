@@ -207,19 +207,34 @@ async function makePg(serviceName, password, pgBinDir, dbDir, sqlScriptsDir) {
 }
 
 const ubuntuPgPath = "/usr/lib/postgresql/10/bin";
+const rhelPgPath = "/usr/pgsql-10/bin";
 
-// What other guesses can we make? what about Redhat?
+// Return a bunch of guesses about where PG initdb (and so on) might be.
 async function guessPgBin() {
+    if (process.env["PGBIN"] != undefined
+        && await fs.promises.exists(process.env["PGBIN"], fs.constants.R_OK)) {
+        return process.env["PGBIN"];
+    }
+
     let exec = require("util").promisify(require("child_process").exec);
 
     // Might indicate Ubuntu usage
     let lsbExe = await findPathDir("lsb_release");
     if (lsbExe != undefined) {
-        // let ubuntuPgPath = "/usr/lib/postgresql/10/bin";
         let { stdout, stderr } = await exec("lsb_release -a");
         if (stdout.indexOf("Ubuntu") > -1) {
             console.log("pgBoot running on an Ubuntu");
             return ubuntuPgPath;
+        }
+    }
+
+    let isRhel = await fs.promises.exists("/etc/redhat-release", fs.constants.R_OK);
+    if (isRhel) {
+        let isPg = await fs.promises.exists(
+            path.join(rhelPgPath, "initdb"), fs.constants.R_OK
+        );
+        if (isPg) {
+            return rhelPgPath;
         }
     }
 
