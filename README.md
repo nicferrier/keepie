@@ -79,6 +79,7 @@ pgBoot.js has been tested on:
 
 * Windows 10 with postgresql 10
 * Ubuntu 16 with postgresql 10
+* RedHat Enterprise Linux 7
 
 
 ### Using pgBoot.js on the command line
@@ -160,6 +161,7 @@ it:
 * `serviceName` - the authorization name, the service to request authorization for
 * `pgBinDir` - a place where we'll find the pg binaries, we'll try to guess if not specified
 * `appCallback` - a function, called with the express app so you can configure routes.
+* `listenAddress` - `undefined` or an address to listen on, eg: `"localhost"`, see [express](https://expressjs.com/en/4x/api.html#app.listen) for more details.
 * `listenerCallback` - a function, called with the listener address so you can enquire of the listener.
 * `sqlScriptsDir` - a path to a directory containing SQL scripts to initialize the db
 * `dbDir` - a path to where to store the db files

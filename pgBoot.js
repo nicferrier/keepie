@@ -249,6 +249,7 @@ async function guessPgBin() {
 
 exports.boot = async function (portToListen, options) {
     let opts = options != undefined ? options : {};
+    let listenAddress = opts.listenAddress;
     let rootDir = opts.rootDir != undefined ? opts.rootDir : __dirname + "/www";
     let secretPath = opts.secretPath != undefined
         ? opts.secretPath : "/pg/keepie-secret/";
@@ -314,26 +315,30 @@ exports.boot = async function (portToListen, options) {
         appCallback(app);
     }
 
-    let listener = app.listen(portToListen, "localhost", async function () {
+
+    let listener = app.listen(portToListen, listenAddress, async function () {
+        console.log("listener", listener.settings);
         let addr = listener.address();
+        let hostToListen = addr.address == "::" ? "localhost" : addr.address;
+        console.log("listener address", hostToListen);
         app.port = addr.port;
 
         let listenerCallback = opts.listenerCallback;
         if (typeof(listenerCallback) === "function") {
-            listenerCallback(listener.address());
+            listenerCallback(addr);
         }
 
         console.log("keepie pg listening on ", app.port);
 
         // Where do we receive passwords from keepie?
         let passwordReceiptUrl =
-            "http://" + addr.address + ":" + addr.port + secretPath;
+            "http://" + hostToListen + ":" + addr.port + secretPath;
 
         // What address do we call keepie on? by default this server (for dev)
         let defaultKeepieUrl = process.env["KEEPIEURL"];
         if (defaultKeepieUrl == undefined || defaultKeepieUrl == "") {
             defaultKeepieUrl =
-                "http://" + addr.address + ":" + addr.port + "/keepie-request";
+                "http://" + hostToListen + ":" + addr.port + "/keepie-request";
         }
 
         // Allow it to be defined in the opts

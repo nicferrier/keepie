@@ -26,6 +26,7 @@ const config = {
 
 exports.boot = function (port, options) {
     let opts = options != undefined ? options : {};
+    let listenAddress = options.listenAddress;
     let rootDir = opts.rootDir != undefined ? opts.rootDir : __dirname + "/www";
 
     let requests = {
@@ -82,13 +83,13 @@ exports.boot = function (port, options) {
         appCallback(app);
     }
     
-    let listener = app.listen(port, "localhost", async function () {
+    let listener = app.listen(port, listenAddress, async function () {
         let listenerCallback = opts.listenerCallback;
         if (typeof(listenerCallback) === "function") {
             listenerCallback(listener.address());
         }
 
-        console.log("listening on ", listener.address().port);
+        console.log("keepie listening on ", listener.address().port);
     });
 };
 
