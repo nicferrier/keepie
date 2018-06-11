@@ -317,10 +317,8 @@ exports.boot = async function (portToListen, options) {
 
 
     let listener = app.listen(portToListen, listenAddress, async function () {
-        console.log("listener", listener.settings);
         let addr = listener.address();
         let hostToListen = addr.address == "::" ? "localhost" : addr.address;
-        console.log("listener address", hostToListen);
         app.port = addr.port;
 
         let listenerCallback = opts.listenerCallback;
