@@ -7,12 +7,15 @@ const path = require("path");
 
 pgBoot.boot(8004, {
     dbDir: path.join(__dirname, "dbfiles"),
+
     sqlScriptsDir: path.join(__dirname, "sql-scripts"),
+
     pgPoolConfig: {
         max: 3,
         idleTimeoutMillis: 10 * 1000,
         connectionTimeoutMillis: 5 * 1000
     },
+
     appCallback: function (app) {
         app.set('json spaces', 4);
 
