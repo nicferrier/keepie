@@ -17,6 +17,8 @@ const bodyParser = require("body-parser");
 const multer  = require('multer')
 const sqlInit = require("./sqlapply.js");
 
+const { Client } = require('pg'); // the pool is done by sql-apply.js
+
 const app = express();
 const upload = multer()
 
@@ -99,7 +101,7 @@ function grep (regex, fn) {
 // Events that we might expose
 exports.events = new EventEmitter();
 
-async function startDb(pgPath, dbDir, sqlScriptsDir) {
+async function startDb(pgPath, dbDir, startOrRun, password, sqlScriptsDir) {
     // Get a spare socket
     let listenerAddress = await getFreePort();
     let socketNumber = "" + listenerAddress.port;
@@ -136,12 +138,27 @@ async function startDb(pgPath, dbDir, sqlScriptsDir) {
         throw new Error("not ready");
     }
 
+    console.log("the db is on", socketNumber);
     let dbConfig = {
         user: "postgres",
         host: "localhost",
         port: socketNumber,
         database: "postgres"
     };
+
+    if (startOrRun == "start") {
+        let client = new Client(dbConfig);
+        let passwordSql = `ALTER ROLE postgres WITH PASSWORD '${password}';`;
+        // console.log("setting the password to", password, passwordSql);
+        await client.connect();
+        let res = await client.query(passwordSql);
+        await client.end();
+        dbConfig.password = password;
+    }
+    else {
+        dbConfig.password = password;
+    }
+    console.log("setting up db");
 
     sqlInit.events.on("sqlFile", evt => exports.events.emit("sqlFile", evt));
     let pgPool = await sqlInit.initDb(sqlScriptsDir, dbConfig);
@@ -173,7 +190,7 @@ async function makePg(serviceName, password, pgBinDir, dbDir, sqlScriptsDir) {
         let dbdirExists = await fs.promises.exists(dbDir);
         if (dbdirExists) {
             // Boot the db
-            startDb(pgExeRoot, dbDir, sqlScriptsDir);
+            startDb(pgExeRoot, dbDir, "run", password, sqlScriptsDir);
         }
         else {
             let listenerAddress = await getFreePort();
@@ -198,7 +215,7 @@ async function makePg(serviceName, password, pgBinDir, dbDir, sqlScriptsDir) {
             fs.promises.mkdir(runDir);
 
             // Boot it!
-            startDb(pgExeRoot, dbDir, sqlScriptsDir);
+            startDb(pgExeRoot, dbDir, "start", password, sqlScriptsDir);
         }
     }
     catch (e) {

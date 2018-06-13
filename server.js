@@ -4,25 +4,31 @@
 const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
-const crypto = require("crypto");
 const { spawn } = require("child_process");
 const { Transform } = require("stream");
 
 const express = require("express");
 const bodyParser = require("body-parser");
 const FormData = require('form-data');
- 
+
+const plainPasswordGenerator = require("./plain.js");
+
 const app = express();
+
+
+const typeMapper = {
+    "plain": plainPasswordGenerator.genPassword
+};
 
 const config = {
     "myservice": {
         "type": "plain",
-        "password": "secret",
         "urls": [
             "http://localhost:5000/pg/keepie-secret/"
         ]
     }
 };
+
 
 exports.boot = function (port, options) {
     let opts = options != undefined ? options : {};
@@ -36,12 +42,22 @@ exports.boot = function (port, options) {
             requests.list.push({service: service, receiptUrl: receiptUrl});
         },
 
-        process: function () {
+        process: async function () {
             if (requests.list.length > 0) {
                 let { service, receiptUrl } = requests.list.pop();
                 let { urls: serviceUrls,
                       password: servicePassword,
                       type: serviceType } = config[service];
+
+                // Some passwords will need to be regenerated
+                if (servicePassword === undefined) {
+                    let genPassword = typeMapper[type];
+                    console.log("genPassword", genPassword);
+                    let password = await genPassword();
+                    config[service].password = password;
+                    servicePassword = password;
+                }
+
                 let [matchingUrl] = serviceUrls.filter(url => url == receiptUrl);
                 if (matchingUrl === undefined) {
                     console.log("unauthorized request", service, receiptUrl);
