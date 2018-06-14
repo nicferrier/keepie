@@ -70,6 +70,8 @@ pgBoot.js does several things:
  * the cluster has encoding UTF8
 * it allocates a random port to the db every time it starts
 * it starts the db in that cluster
+* it changes the password of the `postgres` user
+* it rewrites the `pg_hba` file and `SIGHUP`s the server to re-read it
 * it applies the SQL it finds in a sql-scripts directory to the running DB
 
 

@@ -90,6 +90,20 @@ fs.promises.mkdir = function (path) {
     });
 };
 
+fs.promises.rename = function (oldPath, newPath) {
+    return new Promise((resolve, reject) => {
+        try {
+            fs.rename(oldPath, newPath, err => {
+                if (err) reject(err);
+                else resolve(true);
+            });
+        }
+        catch (err) {
+            reject(err);
+        }
+    });
+};
+
 module.exports = fs;
 
 // fsasync.js ends here

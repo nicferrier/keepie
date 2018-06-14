@@ -107,7 +107,7 @@ async function startDb(pgPath, dbDir, startOrRun, password, sqlScriptsDir) {
     let socketNumber = "" + listenerAddress.port;
                 
     // rewrite the port in postgresql.conf
-    let config = path.join(dbDir, "/postgresql.conf");
+    let config = path.join(dbDir, "postgresql.conf");
     let file = await fs.promises.readFile(config);
     let portChanged = file.replace(
             /^[#]*port = .*/gm, "port = " + socketNumber
@@ -119,9 +119,9 @@ async function startDb(pgPath, dbDir, startOrRun, password, sqlScriptsDir) {
         "unix_socket_directories = '" + runDir + "'"
     );
     await fs.promises.writeFile(config, sockDirChanged);
-    await fs.promises.writeFile(path.join(dbDir,"/port"), socketNumber);
+    await fs.promises.writeFile(path.join(dbDir,"port"), socketNumber);
 
-    let postgresPath = path.join(pgPath, "/postgres");
+    let postgresPath = path.join(pgPath, "postgres");
     let startChild = spawn(postgresPath, ["-D", dbDir]);
 
     startChild.stdout.pipe(process.stdout);
@@ -154,11 +154,19 @@ async function startDb(pgPath, dbDir, startOrRun, password, sqlScriptsDir) {
         let res = await client.query(passwordSql);
         await client.end();
         dbConfig.password = password;
+        // Now rewrite the auth file
+        let hbaPath = path.join(dbDir, "pg_hba.conf");
+        await fs.promises.rename(hbaPath, path.join(dbDir, "pg_hba.conf.original"));
+        await fs.promises.writeFile(hbaPath, `local all all password
+host  all all 127.0.0.1/32 password
+host  all all ::1/128      password\n`);
+        // Make PG re-read the file
+        startChild.kill("SIGHUP");
     }
     else {
         dbConfig.password = password;
     }
-    console.log("setting up db");
+    console.log("keepie-pgBoot:: initializing db SQL");
 
     sqlInit.events.on("sqlFile", evt => exports.events.emit("sqlFile", evt));
     let pgPool = await sqlInit.initDb(sqlScriptsDir, dbConfig);
