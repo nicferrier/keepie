@@ -3,7 +3,7 @@
     "name": "keepie",
     "description": "Keepie keeps passwords",
     "license": "MIT",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "keywords": ["postgresql", "microservice"],
     "repository": {
         "type": "git",
