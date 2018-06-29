@@ -151,17 +151,21 @@ async function startDb(pgPath, dbDir, startOrRun, password, sqlScriptsDir) {
         let passwordSql = `ALTER ROLE postgres WITH PASSWORD '${password}';`;
         // console.log("setting the password to", password, passwordSql);
         await client.connect();
-        let res = await client.query(passwordSql);
-        await client.end();
+        let pwChangeResult = await client.query(passwordSql);
         dbConfig.password = password;
         // Now rewrite the auth file
         let hbaPath = path.join(dbDir, "pg_hba.conf");
         await fs.promises.rename(hbaPath, path.join(dbDir, "pg_hba.conf.original"));
-        await fs.promises.writeFile(hbaPath, `local all all password
+        await fs.promises.writeFile(hbaPath, `# pg_hba
+#local all all trust
 host  all all 127.0.0.1/32 password
 host  all all ::1/128      password\n`);
         // Make PG re-read the file
-        startChild.kill("SIGHUP");
+        let reloadSql = "SELECT pg_reload_conf();"; 
+        let reloadResult = await client.query(passwordSql);
+        await client.end();
+        
+        //startChild.kill("SIGHUP");
     }
     else {
         dbConfig.password = password;
