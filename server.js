@@ -57,14 +57,14 @@ exports.boot = function (port, options) {
                 let { service, receiptUrl } = requests.list.pop();
                 let { urls: serviceUrls,
                       password: servicePassword,
-                      type: serviceType } = config.get(service);
+                      type: serviceType } = await config.get(service);
 
                 // Some passwords will need to be regenerated
                 if (servicePassword === undefined) {
                     let genPassword = typeMapper[type];
                     console.log("genPassword", genPassword);
                     let password = await genPassword();
-                    config.set(service, password);
+                    await config.set(service, password);
                     servicePassword = password;
                 }
 
