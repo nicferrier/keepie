@@ -131,6 +131,7 @@ if (require.main === module) {
 else {
     // Required as a module; that's ok, exports will be fine.
     exports.pgBoot = require(path.join(__dirname, "pgBoot.js"));
+    exports.fs = fs;
 }
 
 // server.js ends here
