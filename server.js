@@ -20,7 +20,7 @@ const typeMapper = {
     "plain": plainPasswordGenerator.genPassword
 };
 
-const config = {
+const configStruct = {
     "myservice": {
         "type": "plain",
         "urls": [
@@ -29,12 +29,22 @@ const config = {
     }
 };
 
+const config = {
+    get: function (service) {
+        return configStruct[service];
+    },
+
+    set: function(service, password) {
+        configStruct[service] = password;
+    }
+};
+
 
 exports.boot = function (port, options) {
     let opts = options != undefined ? options : {};
     let listenAddress = options.listenAddress;
     let rootDir = opts.rootDir != undefined ? opts.rootDir : __dirname + "/www";
-
+    let config = opts.config != undefined ? opts.config : config;
     let requests = {
         list: [],
 
@@ -47,14 +57,14 @@ exports.boot = function (port, options) {
                 let { service, receiptUrl } = requests.list.pop();
                 let { urls: serviceUrls,
                       password: servicePassword,
-                      type: serviceType } = config[service];
+                      type: serviceType } = config.get(service);
 
                 // Some passwords will need to be regenerated
                 if (servicePassword === undefined) {
                     let genPassword = typeMapper[type];
                     console.log("genPassword", genPassword);
                     let password = await genPassword();
-                    config[service].password = password;
+                    config.set(service, password);
                     servicePassword = password;
                 }
 

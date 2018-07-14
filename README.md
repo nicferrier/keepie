@@ -54,6 +54,33 @@ From the command line, simply:
 node server.js
 ```
 
+## How to extend Keepie
+
+Keepie is very basic and only supports plain text password generation
+but it is very extendable.
+
+Call keepie's `boot` with the integer port as the first argument. A
+second argument could be a config object.
+
+Config objects have 2 functions:
+
+* `get` which takes a service name and is expected to return a service config object
+ * a service config object has
+  * a `urls` array
+  * a `password` string
+  * a `type` string to define the type of the password
+* `set` which takes a service name and a password and sets the password for the service
+ * `set` is used in the case where the service config object has no password or a null password
+ * this is done in the cases where keepie should generate the password
+ 
+When keepie generates a password it uses the `type` property to decide
+what sort of password it is and uses a lookup table called
+`typeMapper` to decide how. The `typeMapper` maps type names to
+functions used to generate them.
+
+It's not possible to configure the type mapper right now. But a future
+version will allow it.
+
 
 ## Keepie Postgresql example - pgBoot.js
 
