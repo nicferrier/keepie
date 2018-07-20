@@ -1,11 +1,13 @@
 // keepie
 // Copyright (C) 2018 by Nic Ferrier
 
-const fs = require('fs');
+const fs = require('./fsasync.js');
 const path = require('path');
 const { URL } = require('url');
 const { spawn } = require("child_process");
 const { Transform } = require("stream");
+const fetch = require("node-fetch");
+const https = require("https");
 
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -39,7 +41,6 @@ const config = {
     }
 };
 
-
 exports.boot = function (port, options) {
     let opts = options != undefined ? options : {};
     let listenAddress = options.listenAddress;
@@ -55,9 +56,10 @@ exports.boot = function (port, options) {
         process: async function () {
             if (requests.list.length > 0) {
                 let { service, receiptUrl } = requests.list.pop();
+                let configResponse = await config.get(service);
                 let { urls: serviceUrls,
                       password: servicePassword,
-                      type: serviceType } = await config.get(service);
+                      type: serviceType } = configResponse;
 
                 // Some passwords will need to be regenerated
                 if (servicePassword === undefined) {
@@ -77,9 +79,20 @@ exports.boot = function (port, options) {
                     form.append("password", servicePassword);
                     form.append("name", service);
                     console.log("sending password for", service, "to", receiptUrl);
-                    form.submit(matchingUrl, (err, res) => {
+                    let formResponse = await fetch(matchingUrl, {
+                        method: "POST",
+                        body: form,
+                        agent: false
+                    }).catch(err => {error: err});
+                    if (formResponse.error) {
+                        console.log(
+                            "error posting password for",
+                            service, "to", receiptUrl, formResponse.error
+                        );
+                    }
+                    else {
                         console.log("sent password for", service, "to", receiptUrl);
-                    });
+                    }
                 }
             }
         }
@@ -119,13 +132,46 @@ exports.boot = function (port, options) {
     });
 };
 
+async function copyPgBootDemo () {
+    let bootFile = path.join(__dirname, "pgbootdemo.js");
+    let fileData = await fs.promises.readFile(bootFile);
+    let lines = fileData.split("\n");
+    lines[4] = "const pgBoot = require('keepie').pgBoot;";
+    let newFile = lines.join("\n");
+    await fs.promises.writeFile("boot.js", newFile);
+}
+
 if (require.main === module) {
     try {
-        let port = parseInt(process.args.slice(2)[0])
-        exports.boot(port);
+        let args = process.argv.slice(2);
+        if (args[0] == "help") {
+            console.log(`keepie server - start a keepie or make a pg
+
+start keepie with a port number to start a keepie server:
+
+   node keepie/server.js 8091
+
+starts a keepie on port 8091, whereas:
+
+   node keepie/server.js makepg
+
+makes a pg-booting keepie in the local directory.`);
+        }
+        else if (args[0] == "makepg") {
+            copyPgBootDemo();
+        }
+        else {
+            try {
+                let port = parseInt(args[0])
+                exports.boot(port);
+            }
+            catch (e) {
+                console.log("args not an integer so won't start server");
+            }
+        }
     }
     catch (e) {
-        console.log("couldn't start... port?", e);
+        console.log("args is empty?", e);
     }
 }
 else {
