@@ -226,6 +226,25 @@ But pgBoot.js makes no attempt to keep versioning of these scripts so
 for a full example of how to configure and work with pgBoot.js to
 start and use a Postgresql database.
 
+### Command to create a pgBoot.js demo
+
+Keepie includes a `makepg` command to create a simple demo keepie:
+
+```
+mkdir somejsdir
+cd somejsdir
+npm init -f
+npm install keepie
+node node_modules/keepie/server.js makepg
+```
+
+will make a `boot.js` that is an instance of a pgBoot.js. You can run
+it with:
+
+```
+node boot.js
+```
+
 ## Keepie and other databases?
 
 Is Keepie postgresql specific? No. The only implementation for Keepie
