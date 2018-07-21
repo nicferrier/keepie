@@ -13,7 +13,7 @@ X-Receipt-Url
 
 for example, in curl terms:
 
-```shell
+```sh
 curl -X POST \
      -H "X-Receipt-Url: http://localhost:5000/password" \
      http://localhost/keepie/myservice/request
@@ -36,7 +36,7 @@ If the requested receipt URL is included in the list of authorized
 receipt URLs for the service then the service is sent a multipart POST
 with the service name and the password, rather like this:
 
-```shell
+```sh
 curl -F "password=somesecret" \
      -F "service=myservice" \
      http://localhost:5000/password
@@ -50,7 +50,7 @@ credentials (like databases) to operate in a disposable way.
 
 From the command line, simply:
 
-```shell
+```sh
 node server.js
 ```
 
@@ -119,7 +119,7 @@ Postgresql.
 
 Run it as a server on its own:
 
-```shell
+```sh
 node pgBoot.js 5000
 ```
 
@@ -230,7 +230,7 @@ start and use a Postgresql database.
 
 Keepie includes a `makepg` command to create a simple demo keepie:
 
-```shell
+```sh
 mkdir somejsdir
 cd somejsdir
 npm init -f
@@ -241,7 +241,7 @@ node node_modules/keepie/server.js makepg
 will make a `boot.js` that is an instance of a pgBoot.js. You can run
 it with:
 
-```shell
+```sh
 node boot.js
 ```
 
