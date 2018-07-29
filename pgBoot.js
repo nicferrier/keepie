@@ -245,6 +245,11 @@ async function guessPgBin() {
         return process.env["PGBIN"];
     }
 
+    if (process.env["PG_HOME"] != undefined
+        && await fs.promises.exists(process.env["PG_HOME"], fs.constants.R_OK)) {
+        return process.env["PG_HOME"];
+    }
+
     let exec = require("util").promisify(require("child_process").exec);
 
     // Might indicate Ubuntu usage
