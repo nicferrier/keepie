@@ -4,7 +4,10 @@
     "description": "Keepie keeps passwords",
     "license": "MIT",
     "version": "0.0.16",
-    "keywords": ["postgresql", "microservice"],
+    "keywords": [
+        "postgresql",
+        "microservice"
+    ],
     "repository": {
         "type": "git",
         "url": "https://github.com/nicferrier/keepie"
@@ -14,14 +17,15 @@
         "test": "./test.js"
     },
     "dependencies": {
-        "body-parser": "1.17.1",
+        "body-parser": "^1.18.3",
         "cookie-parser": "^1.4.3",
-        "express": "4.14.0",
+        "express": "^4.16.3",
         "form-data": "^2.3.2",
+        "fresh": "^0.5.2",
         "multer": "^1.3.0",
         "node-fetch": "^2.1.2",
         "pg": "^7.4.3",
-        "serve-index": "1.8.0"
+        "serve-index": "^1.9.1"
     },
     "devDependencies": {
         "deep-equal": "1.0.1",
