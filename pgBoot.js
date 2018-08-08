@@ -174,13 +174,30 @@ host  all all ::1/128      password\n`);
 
     sqlInit.events.on("sqlFile", evt => exports.events.emit("sqlFile", evt));
     let pgPool = await sqlInit.initDb(sqlScriptsDir, dbConfig);
+    let psqlFunc = function (onClose) {
+        let psqlPath = path.join(pgPath, "psql");
+        let args = ["-h", "localhost",
+                    "-p", socketNumber,
+                    "-U", "postgres",
+                   "postgres"];
+        let childProcess = spawn(psqlPath, args, {
+            stdio: "inherit",
+            env: {
+                "PAGER": "",
+                "PGPASSWORD": password
+            }
+        });
+        childProcess.on("exit", onClose);
+    };
 
     exports.events.emit("dbUp", {
-        pgPool: pgPool
+        pgPool: pgPool,
+        psql: psqlFunc
     });
     
     //await sqlInit.end();
     console.log("keepie-pgBoot:: db started and initialized on", socketNumber);
+    exports.events.emit("dbPostInit", {});
 }
 
 async function makePg(serviceName, password, pgBinDir, dbDir, sqlScriptsDir) {

@@ -4,6 +4,15 @@
 
 const pgBoot = require("./server.js").pgBoot;
 const path = require("path");
+const readline = require('readline');
+
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: false,
+    prompt: 'K> '
+});
+
 
 pgBoot.boot(8004, {
     dbDir: path.join(__dirname, "dbfiles"),
@@ -16,6 +25,10 @@ pgBoot.boot(8004, {
         connectionTimeoutMillis: 5 * 1000
     },
 
+    listenerCallback: function (listenerAddress) {
+        console.log("listening on", listenerAddress);
+    },
+
     appCallback: function (app) {
         app.set('json spaces', 4);
 
@@ -26,7 +39,7 @@ pgBoot.boot(8004, {
 
         // Listen for the dbUp event to receive the connection pool
         pgBoot.events.on("dbUp", async dbDetails => {
-            let { pgPool } = dbDetails;
+            let { pgPool, psql } = dbDetails;
 
             // when we get the pool make a query method available
             app.query = async function (sql, parameters) {
@@ -44,6 +57,30 @@ pgBoot.boot(8004, {
                     client.release();
                 }
             };
+
+            app.psqlSpawn = psql;
+        });
+
+        pgBoot.events.on("dbPostInit", () => {
+            let devCli = function() {
+                rl.question("> ", (command) => {
+                    console.log("got a command");
+                    switch (command) {
+                    case "psql":
+                        app.psqlSpawn(devCli);
+                        break;
+                    case "help":
+                        console.log("this is a simple cli allowing launching of psql");
+                        devCli();
+                        break;
+                    default:
+                        console.log("type help");
+                        devCli();
+                        break;
+                    }
+                });
+            };
+            devCli();
         });
 
         app.get("/status", async function (req, res) {
