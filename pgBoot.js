@@ -263,8 +263,9 @@ async function guessPgBin() {
     }
 
     if (process.env["PG_HOME"] != undefined
-        && await fs.promises.exists(process.env["PG_HOME"], fs.constants.R_OK)) {
-        return process.env["PG_HOME"];
+        && await fs.promises.exists(path.join(process.env["PG_HOME"], "bin"),
+                                    fs.constants.R_OK)) {
+        return path.join(process.env["PG_HOME"], "bin");
     }
 
     let exec = require("util").promisify(require("child_process").exec);
