@@ -174,6 +174,8 @@ host  all all ::1/128      password\n`);
 
     sqlInit.events.on("sqlFile", evt => exports.events.emit("sqlFile", evt));
     let pgPool = await sqlInit.initDb(sqlScriptsDir, dbConfig);
+
+    // Make a psql func so that the user has the option of starting psql on console
     let psqlFunc = function (onClose) {
         let psqlPath = path.join(pgPath, "psql");
         let args = ["-h", "localhost",
@@ -181,15 +183,18 @@ host  all all ::1/128      password\n`);
                     "-U", "postgres",
                    "postgres"];
         let childProcess = spawn(psqlPath, args, {
-            stdio: "inherit",
+            stdio: "inherit", //maybe we should copy the env somehow
             env: {
-                "PAGER": "",
+                "PSQL_EDITOR": process.env["PSQL_EDITOR"],
+                "EMACS_SERVER_FILE": process.env["EMACS_SERVER_FILE"],
+                "PAGER": process.env["PAGER"],
                 "PGPASSWORD": password
             }
         });
         childProcess.on("exit", onClose);
     };
 
+    // Send the "db's up" event
     exports.events.emit("dbUp", {
         pgPool: pgPool,
         psql: psqlFunc
@@ -197,6 +202,8 @@ host  all all ::1/128      password\n`);
     
     //await sqlInit.end();
     console.log("keepie-pgBoot:: db started and initialized on", socketNumber);
+
+    // Send a final event
     exports.events.emit("dbPostInit", {});
 }
 
