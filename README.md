@@ -1,7 +1,22 @@
 # Keepie keeps passwords
 
 The idea of keepie is that it holds passwords for you and can hand
-them out to services that are authorized to receive them.
+them out to services that are authorized to receive them thus making
+the storage of the password secure. It's easier to change the password
+(because it can be reissued) and it's a good way to build in
+credential security from the start. 
+
+Alternatives to Keepie are inspiring; including:
+
+- encrypting secrets in increasingly baroque but futile ways
+- or just typing in a secret when you deploy the service.
+
+## Where can I get it
+
+Head over to [npm land](https://www.npmjs.com/package/keepie) to get
+Keepie.
+
+## How does Keepie work?
 
 The protocol is simple. A service requiring a password sends an
 authorization request to Keepie for a password for a specified
