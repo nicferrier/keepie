@@ -20,7 +20,8 @@ const sqlInit = require("./sqlapply.js");
 const { Client } = require('pg'); // the pool is done by sql-apply.js
 
 const app = express();
-const upload = multer()
+const upload = multer();
+
 
 function getFreePort () {
     let server = net.createServer(function(sock) { sock.close(); });
