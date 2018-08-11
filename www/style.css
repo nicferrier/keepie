@@ -9,3 +9,26 @@ div.textarea {
 textarea {
     width: 80%;
 }
+
+
+pre {
+    background-color: #f6f7f6;
+    padding: 10px;
+}
+
+table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid;
+    margin-bottom: 2em;
+}
+
+th {
+    background-color: #f6f7f6;
+}
+
+td,th {
+    border: 1px solid;
+}
+
