@@ -5,6 +5,10 @@
 const pgBoot = require("./server.js").pgBoot;
 const path = require("path");
 const readline = require('readline');
+const multer  = require('multer')
+const express = require("express");
+
+const upload = multer();
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -36,6 +40,45 @@ pgBoot.boot(8004, {
         app.query = async function (sql, parameters) {
             throw new Error("no db connection yet");
         };
+
+
+        // psqlweb
+        const SSE = require("sse-node");
+        const connections = {};
+        
+        function getRemoteAddr(request) {
+            let ip = request.headers["x-forwarded-for"]
+                || request.connection.remoteAddress
+                || request.socket.remoteAddress
+                || request.connection.socket.remoteAddress;
+            let remotePort = request.connection.remotePort;
+            let remoteAddr = ip + ":" + remotePort;
+            return remoteAddr;
+        }
+
+        //let webPsqlPath = opts.webPsqlPath != undefined ? opts.webPsqlPath : "/psql";
+        app.use("/psql", express.static(path.join(__dirname, "www")));
+
+        app.post("/psql", upload.array(), async function (req, resp) {
+            let data = req.body;
+            let { command } = data;
+            let result = await app.query(command);
+            resp.json(result);
+        });
+
+        app.get("/psql/results", function (req, resp) {
+            let remoteAddr = getRemoteAddr(req);
+            console.log("psql wiring up comms from", remoteAddr);
+            let connection = SSE(req, resp, {ping: 10*1000});
+            connection.onClose(closeEvt => {
+                console.log("psql sse closed");  
+                delete connections[remoteAddr];
+            });
+            connections[remoteAddr] = connection;
+            connection.send({remote: remoteAddr}, "meta");
+        });
+        // end psqlweb
+
 
         // Listen for the dbUp event to receive the connection pool
         pgBoot.events.on("dbUp", async dbDetails => {
@@ -80,7 +123,7 @@ pgBoot.boot(8004, {
                     }
                 });
             };
-            devCli();
+            //devCli();
         });
 
         app.get("/status", async function (req, res) {

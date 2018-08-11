@@ -1,0 +1,11 @@
+body {
+    font-family: sans-serif;
+}
+
+div.textarea {
+    margin: 0 auto;
+}
+
+textarea {
+    width: 80%;
+}
