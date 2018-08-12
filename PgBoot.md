@@ -163,6 +163,8 @@ and you'll see a basic command line for interacting with PostgreSQL.
 
 ![Web interface to PostgreSQL](pgboot-ui.jpg)
 
-| Ctrl+Enter | sends a SQL statement to Postgres      |
-| Alt+t      | makes the current query a table lookup |
+| Key        | description                             |
+|------------|-----------------------------------------|
+| Ctrl+Enter | sends a SQL statement to Postgres       |
+| Alt+t      | makes the current query a table lookup  |
 
