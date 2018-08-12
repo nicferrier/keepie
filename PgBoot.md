@@ -161,7 +161,7 @@ http://yourserver:PORT/psql
 
 and you'll see a basic command line for interacting with PostgreSQL.
 
-![Web interface to PostgreSQL](pgboot-ui.jpg)
+![Web interface to PostgreSQL](pgbootui.jpg)
 
 | Key        | description                             |
 |------------|-----------------------------------------|
