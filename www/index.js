@@ -1,3 +1,4 @@
+
 const sqlShowTables = `SELECT *
 FROM pg_catalog.pg_tables
 WHERE schemaname != 'pg_catalog'
@@ -14,6 +15,7 @@ function makeResultDisplay (sql, result) {
         .nextElementSibling
         .insertAdjacentElement("afterend",document.createElement("div"));
     d.appendChild(document.createElement("pre")).textContent = sql;
+    d.querySelector("pre").setAttribute("data-language", "sql");
 
     if (result.dberror !== undefined) {
         let e = d.appendChild(document.createElement("pre"));
@@ -24,11 +26,12 @@ function makeResultDisplay (sql, result) {
 
     let table = d.appendChild(document.createElement("table"));
 
-    if (result.rows.length > 0) {
+    if (result.fields !== undefined) {
         let tr = table.appendChild(document.createElement("tr"))
-        Object.keys(result.rows[0]).forEach(cell => {
-            tr.appendChild(document.createElement("th"))
-                .textContent = cell;
+        result.fields.forEach(cell => {
+            let th = tr.appendChild(document.createElement("th"));
+            th.textContent = cell.name;
+            th.setAttribute("data-typesize", cell.dataTypeSize);
         });
     }
 
@@ -59,6 +62,8 @@ async function sendSql() {
     }
     let result = await response.json();
     ta.textContent = "";
+
+    console.log("sql result", result);
 
     makeResultDisplay(sql, result);
 }
@@ -111,6 +116,7 @@ function initSqlArea() {
         }
     });
 
+    area.setAttribute("data-language", "sql");
     area.focus();
 }
 

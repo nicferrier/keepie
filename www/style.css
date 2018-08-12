@@ -10,6 +10,8 @@ div.sqlarea {
     width: 99%;
     padding: 4px;
     font-family: monospace;
+    background-color: #fefefe;
+    border: 1px solid #2020f0;
 }
 
 
@@ -36,5 +38,9 @@ th {
 
 td,th {
     border: 1px solid;
+    padding: 2px;
 }
 
+th[data-typesize="4"] {
+    width: 70px;
+}
