@@ -6,6 +6,20 @@ whole database securely, without ever knowing the password.
 It turned out to be a useful thing for me though, so I've gradually
 extended it to be more and more useful for a developer.
 
+## Features
+
+* it creates a pg cluster (initdb) if one does not exist
+ * the cluster has locale POSIX, or *C* in Postgresql convention
+ * the cluster is owned by user `postgres`
+ * the cluster has encoding UTF8
+* it allocates a random port to the db every time it starts
+* it starts the db in that cluster
+* it changes the password of the `postgres` user
+* it rewrites the `pg_hba` file and reloads the server config
+ * the server now can only be accessed with the keepie provided password
+* it applies the SQL it finds in a sql-scripts directory to the running DB
+
+
 ## What operating systems support pgBoot.js?
 
 pgBoot.js has been tested on:
