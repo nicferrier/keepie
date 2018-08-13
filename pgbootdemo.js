@@ -10,19 +10,45 @@ const express = require("express");
 
 const upload = multer();
 
+// PSQL command line
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
     terminal: false,
-    prompt: 'K> '
 });
+            
+function devCli() {
+    rl.question("> ", (command) => {
+        console.log("got a command");
+        switch (command) {
+        case "psql":
+            app.psqlSpawn(devCli);
+            break;
+        case "help":
+            console.log("this is a simple cli allowing launching of psql");
+            devCli();
+            break;
+        default:
+            console.log("type help");
+            devCli();
+            break;
+        }
+    });
+}
 
+// Webapp
+const port = 8004;
 
-pgBoot.boot(8004, {
+// Config
+const options = {
+    webApp: true,
+    cli: false
+};
+
+// Main
+pgBoot.boot(port, {
     dbDir: path.join(__dirname, "dbfiles"),
-
     sqlScriptsDir: path.join(__dirname, "sql-scripts"),
-
     pgPoolConfig: {
         max: 3,
         idleTimeoutMillis: 10 * 1000,
@@ -41,42 +67,17 @@ pgBoot.boot(8004, {
             throw new Error("no db connection yet");
         };
 
-
-        // psqlweb
-        const SSE = require("sse-node");
-        const connections = {};
-        
-        function getRemoteAddr(request) {
-            let ip = request.headers["x-forwarded-for"]
-                || request.connection.remoteAddress
-                || request.socket.remoteAddress
-                || request.connection.socket.remoteAddress;
-            let remotePort = request.connection.remotePort;
-            let remoteAddr = ip + ":" + remotePort;
-            return remoteAddr;
-        }
-
-        //let webPsqlPath = opts.webPsqlPath != undefined ? opts.webPsqlPath : "/psql";
-        app.use("/psql", express.static(path.join(__dirname, "www")));
-
-        app.post("/psql", upload.array(), async function (req, resp) {
-            let data = req.body;
-            let { command } = data;
-            let result = await app.query(command);
-            resp.json(result);
-        });
-
-        app.get("/psql/results", function (req, resp) {
-            let remoteAddr = getRemoteAddr(req);
-            console.log("psql wiring up comms from", remoteAddr);
-            let connection = SSE(req, resp, {ping: 10*1000});
-            connection.onClose(closeEvt => {
-                console.log("psql sse closed");  
-                delete connections[remoteAddr];
+        // psqlweb if we want it
+        if (options.webApp) {
+            app.use("/psql", express.static(path.join(__dirname, "www")));
+            
+            app.post("/psql", upload.array(), async function (req, resp) {
+                let data = req.body;
+                let { command } = data;
+                let result = await app.query(command);
+                resp.json(result);
             });
-            connections[remoteAddr] = connection;
-            connection.send({remote: remoteAddr}, "meta");
-        });
+        }
         // end psqlweb
 
 
@@ -105,25 +106,10 @@ pgBoot.boot(8004, {
         });
 
         pgBoot.events.on("dbPostInit", () => {
-            let devCli = function() {
-                rl.question("> ", (command) => {
-                    console.log("got a command");
-                    switch (command) {
-                    case "psql":
-                        app.psqlSpawn(devCli);
-                        break;
-                    case "help":
-                        console.log("this is a simple cli allowing launching of psql");
-                        devCli();
-                        break;
-                    default:
-                        console.log("type help");
-                        devCli();
-                        break;
-                    }
-                });
-            };
-            //devCli();
+            console.log("pgboot webapp listening on ", port);
+            if (options.cli) {
+                devCli();
+            }
         });
 
         app.get("/status", async function (req, res) {
