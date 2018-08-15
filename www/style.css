@@ -34,6 +34,9 @@ div.header {
 
 pre[data-language="sql"] {
     margin-top: 1px;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-bottom: 5px;
 }
 
 table {
@@ -58,7 +61,7 @@ th {
 }
 
 td,pre {
-    padding: 0px;
+    padding: 1px;
 }
 
 th[data-typesize="4"] {

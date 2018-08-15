@@ -14,9 +14,11 @@ function makeResultDisplay (sql, result) {
         .firstElementChild
         .nextElementSibling
         .insertAdjacentElement("afterend",document.createElement("div"));
+
     let header = d.appendChild(document.createElement("div"));
     header.classList.add("header");
     header.textContent = new Date();
+
     d.appendChild(document.createElement("pre")).textContent = sql;
     d.querySelector("pre").setAttribute("data-language", "sql");
 
