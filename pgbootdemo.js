@@ -17,7 +17,7 @@ const rl = readline.createInterface({
     terminal: false,
 });
             
-function devCli() {
+function devCli(app) {
     rl.question("> ", (command) => {
         console.log("got a command");
         switch (command) {
@@ -108,7 +108,7 @@ pgBoot.boot(port, {
         pgBoot.events.on("dbPostInit", () => {
             console.log("pgboot webapp listening on ", port);
             if (options.cli) {
-                devCli();
+                devCli(app);
             }
         });
 
