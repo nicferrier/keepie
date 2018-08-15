@@ -24,11 +24,24 @@ pre.error {
     border: 1px solid #a01050;
 }
 
+div.header {
+    margin-top: 10px;
+    margin-bottom: 1px;
+    font-size: 1vh;
+    text-align: right;
+    width: 100%;
+}
+
+pre[data-language="sql"] {
+    margin-top: 1px;
+}
+
 table {
     table-layout: fixed;
     width: 100%;
     border-collapse: collapse;
     border: 1px solid;
+    margin-top: 1px;
     margin-bottom: 2em;
 }
 
@@ -38,7 +51,14 @@ th {
 
 td,th {
     border: 1px solid;
+}
+
+th {
     padding: 2px;
+}
+
+td,pre {
+    padding: 0px;
 }
 
 th[data-typesize="4"] {

@@ -14,6 +14,9 @@ function makeResultDisplay (sql, result) {
         .firstElementChild
         .nextElementSibling
         .insertAdjacentElement("afterend",document.createElement("div"));
+    let header = d.appendChild(document.createElement("div"));
+    header.classList.add("header");
+    header.textContent = new Date();
     d.appendChild(document.createElement("pre")).textContent = sql;
     d.querySelector("pre").setAttribute("data-language", "sql");
 
@@ -39,7 +42,7 @@ function makeResultDisplay (sql, result) {
         let r = table.appendChild(document.createElement("tr"));
         Object.keys(row).forEach(cell => {
             let c = r.appendChild(document.createElement("td"));
-            c.textContent = row[cell];
+            c.appendChild(document.createElement("pre")).textContent = row[cell];
         });
     });
 };
