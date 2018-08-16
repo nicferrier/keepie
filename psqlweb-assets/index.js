@@ -125,22 +125,6 @@ function initSqlArea() {
     area.focus();
 }
 
-const es = new EventSource("results");
-
-es.addEventListener("meta", metaEvt => {
-    console.log("meta", metaEvt);
-});
-
-es.addEventListener("result", resultEvt => {
-    try {
-        console.log("result", resultEvt);
-    }
-    catch (e) {
-        console.log("error while handling resultEvt", e);
-    }
-});
-
-
 window.addEventListener("load", evt => {
     initSqlArea();
 });

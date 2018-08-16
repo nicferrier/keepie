@@ -5,10 +5,7 @@
 const pgBoot = require("./server.js").pgBoot;
 const path = require("path");
 const readline = require('readline');
-const multer  = require('multer')
 const express = require("express");
-
-const upload = multer();
 
 // PSQL command line
 const rl = readline.createInterface({
@@ -69,14 +66,8 @@ pgBoot.boot(port, {
 
         // psqlweb if we want it
         if (options.webApp) {
-            app.use("/psql", express.static(path.join(__dirname, "www")));
-            
-            app.post("/psql", upload.array(), async function (req, resp) {
-                let data = req.body;
-                let { command } = data;
-                let result = await app.query(command);
-                resp.json(result);
-            });
+            const psqlWebApp = require("./psqlweb.js");
+            psqlWebApp.init(app);
         }
         // end psqlweb
 
