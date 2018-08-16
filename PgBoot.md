@@ -181,4 +181,3 @@ and you'll see a basic command line for interacting with PostgreSQL.
 |------------|-----------------------------------------|
 | Ctrl+Enter | sends a SQL statement to Postgres       |
 | Alt+t      | makes the current query a table lookup  |
-

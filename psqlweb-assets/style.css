@@ -2,6 +2,15 @@ body {
     font-family: sans-serif;
 }
 
+h1 {
+    margin-bottom: 10px;
+}
+
+section.help {
+    font-size: 3vh;
+    margin-bottom: 10px;
+}
+
 div.textarea {
     margin: 0 auto;
 }
