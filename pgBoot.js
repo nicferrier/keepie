@@ -99,6 +99,32 @@ function grep (regex, fn) {
     });
 }
 
+// Recursively attempt connection until something works
+let triesLimit = 10;
+const upTestFn = async function (dbConfig, tries) {
+    // console.log("testing connection dbconfig", dbConfig);
+    let client = new Client(dbConfig);
+    let result = await client.connect().catch(e => e);
+
+    // console.log("testing connection r>", result);
+    if (result instanceof(Error) && tries < triesLimit) {
+        await new Promise((resolve, reject) => {
+            setTimeout(_ => resolve([]), 500);
+        });
+        return await upTestFn(dbConfig, tries + 1);
+    }
+    
+    let queryResult = await client.query("select 1;").catch(e => e);
+    // console.log("testing connection qr>", queryResult);
+    if (queryResult instanceof(Error) && tries < triesLimit) {
+        await new Promise((resolve, reject) => {
+            setTimeout(_ => resolve([]), 500);
+        });
+        return await upTestFn(dbConfig, tries + 1);
+    }
+    return true;
+};
+
 // Events that we might expose
 exports.events = new EventEmitter();
 
@@ -124,28 +150,39 @@ async function startDb(pgPath, dbDir, startOrRun, password, sqlScriptsDir) {
 
     let postgresPath = path.join(pgPath, "postgres");
     let startChild = spawn(postgresPath, ["-D", dbDir]);
-
     startChild.stdout.pipe(process.stdout);
-    startChild.stderr
-        .pipe(grep(/is (ready) to accept connections/,
-                   (res => startChild.emit("accepting", res))))
-        .pipe(process.stderr);
+    startChild.stderr.pipe(process.stderr);    
 
-    let onConnectAccept = proc => startChild.on("accepting", proc);
-    let found = await eventToHappen(onConnectAccept);
-
-    let [_, ready] = found;
-    if (ready != "ready") {
-        throw new Error("not ready");
-    }
-
-    console.log("the db is on", socketNumber);
+    // Test the startup with real connections
     let dbConfig = {
         user: "postgres",
         host: "localhost",
         port: socketNumber,
         database: "postgres"
     };
+
+    if (startOrRun == "run") {
+        dbConfig.password = password;
+    }
+    
+    // Wait a few seconds for the service to start
+    upTestFn(dbConfig, 0).then(started => {
+        if (!started) {
+            console.log("db didn't come up in 5 seconds");
+            process.exit(1);
+        }
+        startChild.emit("accepting", [null, "ready"]);
+    });
+
+    let onConnectAccept = proc => startChild.on("accepting", proc);
+    let found = await eventToHappen(onConnectAccept);
+    
+    let [_, ready] = found;
+    if (ready != "ready") {
+        throw new Error("not ready");
+    }
+
+    console.log("the db is on", socketNumber);
 
     if (startOrRun == "start") {
         let client = new Client(dbConfig);
@@ -167,9 +204,6 @@ host  all all ::1/128      password\n`);
         await client.end();
         
         //startChild.kill("SIGHUP");
-    }
-    else {
-        dbConfig.password = password;
     }
     console.log("keepie-pgBoot:: initializing db SQL");
 
@@ -228,7 +262,7 @@ async function makePg(serviceName, password, pgBinDir, dbDir, sqlScriptsDir) {
         let dbdirExists = await fs.promises.exists(dbDir);
         if (dbdirExists) {
             // Boot the db
-            startDb(pgExeRoot, dbDir, "run", password, sqlScriptsDir);
+            await startDb(pgExeRoot, dbDir, "run", password, sqlScriptsDir);
         }
         else {
             let listenerAddress = await getFreePort();
@@ -253,7 +287,7 @@ async function makePg(serviceName, password, pgBinDir, dbDir, sqlScriptsDir) {
             fs.promises.mkdir(runDir);
 
             // Boot it!
-            startDb(pgExeRoot, dbDir, "start", password, sqlScriptsDir);
+            await startDb(pgExeRoot, dbDir, "start", password, sqlScriptsDir);
         }
     }
     catch (e) {
@@ -325,6 +359,7 @@ exports.boot = async function (portToListen, options) {
             idleTimeoutMillis: 30 * 1000,
             connectionTimeoutMillis: 2 * 1000
         };
+    let appCallback = opts.appCallback;
 
     // Ensure we don't have keys we don't want
     Object.keys(pgPoolConfig).forEach(key => {
@@ -351,7 +386,12 @@ exports.boot = async function (portToListen, options) {
         await eventToHappen(onFinish);
 
         // Now make the pg
-        makePg(name, password, pgBinDir, dbDir, sqlScriptsDir);
+        await makePg(name, password, pgBinDir, dbDir, sqlScriptsDir);
+
+        // Standard app callback stuff
+        if (typeof(appCallback) === "function") {
+            await appCallback(app);
+        }
     });
 
     app.post("/keepie-request", async function (req, response) {
@@ -369,13 +409,6 @@ exports.boot = async function (portToListen, options) {
         console.log("keepie authorization sending to", authorizationReceiptUrl);
         fd.submit(authorizationReceiptUrl);
     });
-
-    // Standard app callback stuff
-    let appCallback = opts.appCallback;
-    if (typeof(appCallback) === "function") {
-        appCallback(app);
-    }
-
 
     let listener = app.listen(portToListen, listenAddress, async function () {
         let addr = listener.address();
