@@ -25,7 +25,9 @@
         "multer": "^1.3.0",
         "node-fetch": "^2.1.2",
         "pg": "^7.4.3",
+        "psql-web-app": "file:../psqlapp",
         "serve-index": "^1.9.1",
+        "simple-auth-4-express": "file:../authtest",
         "sse-node": "1.0.2"
     },
     "devDependencies": {

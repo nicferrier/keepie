@@ -66,8 +66,13 @@ pgBoot.boot(port, {
 
         // psqlweb if we want it
         if (options.webApp) {
-            const psqlWebApp = require("./psqlweb.js");
-            psqlWebApp.init(app);
+            const auth = require("simple-auth-4-express");
+            const psqlWebApp = require("psql-web-app");
+            psqlWebApp.init(app, {
+                middleware: auth.middleware(function (username, password) {
+                    return true;
+                })
+            });
         }
         // end psqlweb
 

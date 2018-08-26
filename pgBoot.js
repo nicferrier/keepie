@@ -63,10 +63,10 @@ Array.prototype.filterAsync = async function (fn) {
 
 async function findPathDir(exe, pathVar) {
     pathVar = pathVar !== undefined ? pathVar : process.env["PATH"];
-    let pathParts = pathVar.split(path.delimiter);
+    let pathParts = pathVar.split(path.delimiter);    
     let existsModes = fs.constants.R_OK;
     let existing = await pathParts
-        .filterAsync(async p => await fs.promises.exists(p, existsModes));
+        .filterAsync(async p => await fs.promises.access(p, existsModes));
     let lists = await existing.mapAsync(
         async p => [p, await fs.promises.readdir(p)]
     );
@@ -213,11 +213,12 @@ async function makePg(serviceName, password, pgBinDir, dbDir, sqlScriptsDir) {
     try {
         // Do Pg init
         let pgBinPath = process.env["PATH"];
-        let exists = await fs.promises.exists(pgBinDir, fs.constants.R_OK);
+        let exists = await fs.promises.access(pgBinDir, fs.constants.R_OK);
         if (exists) {
             pgBinPath = pgBinPath + path.delimiter + pgBinDir;
         }
-        let pgExeRoot = await findPathDir("initdb", pgBinPath);
+        
+        let pgExeRoot = await findPathDir("initdb", pgBinDir);
 
         if (pgExeRoot == undefined) {
             throw new Error("cant find postgres initdb");

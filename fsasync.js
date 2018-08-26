@@ -62,6 +62,7 @@ fs.promises.stat = function (path) {
 };
 
 fs.promises.exists = function (path, modes) {
+    console.log("exists?", path);
     modes = modes !== undefined ? modes : fs.constants.R_OK | fs.constants.W_OK;
     return new Promise((resolve, reject) => {
         try {
@@ -75,6 +76,22 @@ fs.promises.exists = function (path, modes) {
         }
     });
 };
+
+fs.promises.access = function (path, modes) {
+    modes = modes !== undefined ? modes : fs.constants.R_OK | fs.constants.W_OK;
+    return new Promise((resolve, reject) => {
+        try {
+            fs.access(path, modes, err => {
+                if (err) resolve(false);
+                else resolve(true);
+            });
+        }
+        catch (err) {
+            reject(err);
+        }
+    });
+};
+
 
 fs.promises.mkdir = function (path) {
     return new Promise((resolve, reject) => {
