@@ -185,12 +185,12 @@ host  all all ::1/128      password\n`);
                    "postgres"];
         let childProcess = spawn(psqlPath, args, {
             stdio: "inherit", //maybe we should copy the env somehow
-            env: {
+            env: Object.assign({
                 "PSQL_EDITOR": process.env["PSQL_EDITOR"],
                 "EMACS_SERVER_FILE": process.env["EMACS_SERVER_FILE"],
                 "PAGER": process.env["PAGER"],
                 "PGPASSWORD": password
-            }
+            }, process.env)
         });
         childProcess.on("exit", onClose);
     };
@@ -235,7 +235,7 @@ async function makePg(serviceName, password, pgBinDir, dbDir, sqlScriptsDir) {
             let socketNumber = "" + listenerAddress.port;
 
             // You must supply a valid socket number
-            let portEnv = { "PGPORT":  socketNumber };
+            let portEnv = Object.assign({"PGPORT": socketNumber}, process.env);
             let env = { env: portEnv };
 
             let initdbPath = pgPath;
