@@ -3,7 +3,7 @@
     "name": "keepie",
     "description": "Keepie keeps passwords",
     "license": "MIT",
-    "version": "0.0.20",
+    "version": "0.0.21",
     "keywords": [
         "postgresql",
         "microservice"
@@ -25,9 +25,9 @@
         "multer": "^1.3.0",
         "node-fetch": "^2.1.2",
         "pg": "^7.4.3",
-        "psql-web-app": "file:../psqlapp",
+        "psql-web-app": "0.0.3",
         "serve-index": "^1.9.1",
-        "simple-auth-4-express": "file:../authtest",
+        "simple-auth-4-express": "0.0.4",
         "sse-node": "1.0.2"
     },
     "devDependencies": {
