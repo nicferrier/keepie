@@ -5,7 +5,6 @@
 const pgBoot = require("./server.js").pgBoot;
 const path = require("path");
 const readline = require('readline');
-const express = require("express");
 
 // PSQL command line
 const rl = readline.createInterface({
@@ -103,13 +102,18 @@ pgBoot.boot(port, {
 
         // psqlweb if we want it
         if (options.webApp) {
-            const auth = require("simple-auth-4-express");
-            const psqlWebApp = require("psql-web-app");
-            psqlWebApp.init(app, {
-                middleware: auth.middleware(function (username, password) {
-                    return true;
-                })
-            });
+            try {
+                const auth = require("simple-auth-4-express");
+                const psqlWebApp = require("psql-web-app");
+                psqlWebApp.init(app, {
+                    middleware: auth.middleware(function (username, password) {
+                        return true;
+                    })
+                });
+            }
+            catch (e) {
+                console.error("pgboot webapp problem? just requires?", e.message);
+            }
         }
         // end psqlweb
 
