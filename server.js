@@ -46,6 +46,8 @@ exports.boot = function (port, options) {
     let listenAddress = options.listenAddress;
     let rootDir = opts.rootDir != undefined ? opts.rootDir : __dirname + "/www";
     let config = opts.config != undefined ? opts.config : config;
+    let appCallback = opts.appCallback;
+
     let requests = {
         list: [],
 
@@ -117,7 +119,6 @@ exports.boot = function (port, options) {
     });
 
     // Standard app callback stuff
-    let appCallback = opts.appCallback;
     if (typeof(appCallback) === "function") {
         appCallback(app);
     }
