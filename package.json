@@ -1,4 +1,4 @@
-#{
+{
     "author": "nic ferrier, nic@ferrier.me.uk",
     "name": "keepie",
     "description": "Keepie keeps passwords",
@@ -14,7 +14,7 @@
     },
     "main": "./server.js",
     "scripts": {
-        "test": "./test.js"
+        "test": "node ./test-keepie.js ; node test-fs-export.js"
     },
     "dependencies": {
         "body-parser": "^1.18.3",
