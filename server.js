@@ -51,7 +51,7 @@ exports.boot = function (port, options) {
     let appCallback = opts.appCallback;
 
     let requests = {
-        xid: opts.xid,
+        id: opts.id != undefined ? opts.id : new Date().valueOf(),
         list: [],
 
         add: function (service, receiptUrl) {
@@ -60,9 +60,7 @@ exports.boot = function (port, options) {
         },
 
         process: async function () {
-            console.log("!!! process requests.list", requests.list);
             if (requests.list.length > 0) {
-                console.log("process requests.list", requests.list);
                 let { service, receiptUrl } = requests.list.pop();
                 let configResponse = await config.get(service);
                 let { urls: serviceUrls,
@@ -128,7 +126,6 @@ exports.boot = function (port, options) {
         if (service !== undefined && receiptUrl !== undefined) {
             console.log("received request to send", service, "to", receiptUrl);
             requests.add(service, receiptUrl);
-            console.log("requests size in handler", requests);
             response.sendStatus(204);
             return;
         }

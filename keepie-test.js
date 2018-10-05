@@ -53,7 +53,7 @@ async function httpTest() {
              // Boot keepie and get the listener and interval
              let [keepieListener, keepieInterval] = await new Promise((resolve, reject) => {
                  let keepieInterval = keepie.boot(2081, {
-                     xid: "http",
+                     id: "http",
                      config: {
                          get: (service) => {
                              return {
@@ -110,8 +110,6 @@ async function httpsTest() {
         certCreateBashScript.stdout.pipe(process.stdout);
         certCreateBashScript.stderr.pipe(process.stderr);
         certCreateBashScript.on("exit", result => {
-            // console.log("bash", certCreateBashScript.stdout);
-            // certCreateBashScript.stdout.close();
             resolve(result);
         });
     });
@@ -144,7 +142,7 @@ async function httpsTest() {
              // Boot keepie and get the listener and interval
              let [keepieListener, keepieInterval] = await new Promise((resolve, reject) => {
                  let keepieInterval = keepie.boot(2081, {
-                     xid: "https", 
+                     id: "https", 
                      config: {
                          get: (service) => {
                              return {
