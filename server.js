@@ -1,4 +1,4 @@
-// keepie
+// keepie -*- js-indent-level: 4 -*-
 // Copyright (C) 2018 by Nic Ferrier
 
 const fs = require('./fsasync.js');
@@ -81,11 +81,14 @@ exports.boot = function (port, options) {
                     form.append("password", servicePassword);
                     form.append("name", service);
                     console.log("sending password for", service, "to", receiptUrl);
-                    let formResponse = await fetch(matchingUrl, {
+
+                    // FIXME: this is buggy when the request fails - use trygo?
+                    let formResponse = await fetch(receiptUrl, {
                         method: "POST",
                         body: form,
                         agent: false
-                    }).catch(err => {error: err});
+                    }).catch(err => {error: err})
+
                     if (formResponse.error) {
                         console.log(
                             "error posting password for",
@@ -100,7 +103,7 @@ exports.boot = function (port, options) {
         }
     };
 
-    setInterval(requests.process, 2000);
+    let interval = setInterval(requests.process, 2000);
 
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({extended: true}));
@@ -109,6 +112,7 @@ exports.boot = function (port, options) {
     app.post("/keepie/:service([A-Za-z0-9_-]+)/request", function (req, response) {
         let { service } = req.params;
         let receiptUrl = req.get("x-receipt-url");
+        console.log("keepie>", service, receiptUrl);
         if (service !== undefined && receiptUrl !== undefined) {
             console.log("received request to send", service, "to", receiptUrl);
             requests.add(service, receiptUrl);
@@ -126,11 +130,13 @@ exports.boot = function (port, options) {
     let listener = app.listen(port, listenAddress, async function () {
         let listenerCallback = opts.listenerCallback;
         if (typeof(listenerCallback) === "function") {
-            listenerCallback(listener.address());
+            listenerCallback(listener);
         }
 
         console.log("keepie listening on ", listener.address().port);
     });
+
+    return interval;
 };
 
 async function copyPgBootDemo () {
