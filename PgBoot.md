@@ -31,10 +31,11 @@ pgBoot.js has been tested on:
 
 ## Using pgBoot.js on the command line
 
-You can use pgBoot.js to run your own Keepie based service with
-Postgresql.
+If you have cloned this repository or npm installed keepie, you can
+use pgBoot.js to run your own Keepie based service with Postgresql.
 
-Run it as a server on its own:
+Change to the directory with pgBoot.js and run it as a server on its
+own:
 
 ```sh
 node pgBoot.js 5000
