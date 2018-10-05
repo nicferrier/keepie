@@ -6,7 +6,9 @@
     "version": "0.0.26",
     "keywords": [
         "postgresql",
-        "microservice"
+        "microservice",
+        "secrets",
+        "passwords"
     ],
     "repository": {
         "type": "git",
