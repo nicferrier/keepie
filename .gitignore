@@ -2,3 +2,10 @@ node_modules
 dbdir
 dbfiles
 *~
+node_modules
+ca.key
+cacert.pem
+cacert.srl
+cert.pem
+csr
+my.key

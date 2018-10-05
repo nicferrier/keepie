@@ -1,0 +1,12 @@
+#!/bin/bash
+
+rm -f ca.key cacert.pem my.key csr cert.pem cacert.srl
+echo 01 > cacert.srl
+openssl genrsa -out ca.key 2048
+# The domain here cannot be localhost
+openssl req -x509 -new -nodes -key ca.key -days 365 -out cacert.pem -subj "/CN=example.com"
+openssl genrsa -out my.key 2048
+openssl req -new -key my.key -out csr -subj "/CN=localhost"
+openssl x509 -req -in csr -CA cacert.pem -CAkey ca.key -days 365 -out cert.pem
+
+# End
