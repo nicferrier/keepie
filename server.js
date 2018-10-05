@@ -51,11 +51,12 @@ exports.boot = function (port, options) {
     let appCallback = opts.appCallback;
 
     let requests = {
-        id: opts.id != undefined ? opts.id : new Date().valueOf(),
         list: [],
 
+        // Differentiate many keepies
+        id: opts.id != undefined ? opts.id : new Date().valueOf(),
+
         add: function (service, receiptUrl) {
-            console.log("adding", requests.xid, requests.list);
             requests.list.push({service: service, receiptUrl: receiptUrl});
         },
 
@@ -91,9 +92,8 @@ exports.boot = function (port, options) {
                         body: form
                     };
 
-                    if (receiptUrl.startsWith("https")) {
-                        let ca = await fs.promises.readFile("cacert.pem");
-                        options.agent = new https.Agent({ ca: ca });
+                    if (receiptUrl.startsWith("https") && opts.ca != undefined) {
+                        options.agent = new https.Agent({ ca: opts.ca });
                     }
 
                     let [formResponseErr, formResponse]

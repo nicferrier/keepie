@@ -140,9 +140,11 @@ async function httpsTest() {
              let receiptUrl = `https://localhost:${port}${uniqueReceiptPath}`;
 
              // Boot keepie and get the listener and interval
-             let [keepieListener, keepieInterval] = await new Promise((resolve, reject) => {
+             let [keepieListener, keepieInterval] = await new Promise(async (resolve, reject) => {
+                 let ca = await fs.promises.readFile("cacert.pem");
                  let keepieInterval = keepie.boot(2081, {
-                     id: "https", 
+                     id: "https",
+                     ca: ca,
                      config: {
                          get: (service) => {
                              return {

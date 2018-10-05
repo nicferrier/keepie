@@ -96,6 +96,54 @@ functions used to generate them.
 It's not possible to configure the type mapper right now. But a future
 version will allow it.
 
+Here is an example of booting keepie with a custom config:
+
+```
+const keepie = require("keepie");
+keepie.boot(8090, {
+     config: {
+        get: (service) => {
+           if (service == "myspecialservice") {
+              return {
+                 urls: ["http://example.org/receivePassword"],
+                 password: "secret",
+                 type: "plain"
+              };
+           }
+        }
+     }
+  });
+});
+```
+
+In 90% of keepie examples implementing the `get` is all that is necessary.
+
+
+## Keepie and HTTPS
+
+Keepie can send data to HTTPS servers. But if your server has a self
+signed certificate you will need to do one of two things.
+
+Either, turn off certifcate validation entirely in the nodejs process
+(not advisable for a production system) or tell keepie about the
+certificate authority that made your certificate.
+
+Note that with a purely self-signed certificate there is no way
+*other* than turning off certificate validation to deal with it.
+
+If your server is protected by a non-root signed certificate authority
+though, then you can pass that ca to keepie, like this:
+
+```
+const keepie = require("keepie");
+const serviceConfig = { get: ... };
+fs.promises.readFile("my-ca-cert.pem").then(caFile => {
+  keepie.boot(8090, {
+     ca: caFile,
+     config: serviceConfig
+  });
+});
+```
 
 ## Keepie Postgresql example - pgBoot.js
 
