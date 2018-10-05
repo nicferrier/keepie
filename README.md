@@ -98,7 +98,7 @@ version will allow it.
 
 Here is an example of booting keepie with a custom config:
 
-```
+```javascript
 const keepie = require("keepie");
 keepie.boot(8090, {
      config: {
@@ -134,7 +134,7 @@ Note that with a purely self-signed certificate there is no way
 If your server is protected by a non-root signed certificate authority
 though, then you can pass that ca to keepie, like this:
 
-```
+```javascript
 const keepie = require("keepie");
 const serviceConfig = { get: ... };
 fs.promises.readFile("my-ca-cert.pem").then(caFile => {
