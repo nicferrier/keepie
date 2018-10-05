@@ -48,10 +48,13 @@ let receiptSerial = 1;
 
 httpMain().then(async ([err, listener]) => {
     let port = listener.address().port;
+    let secret = "secret";
+
+    // Do Keepie boot and hit it with a request; get the server
+    //  sockets and timer back
     let {requestBody: receivedPassword,
          keepieListener,
          keepieInterval} = await new Promise(async (resolve, reject) => {
-             // Now add the keepie root
              let uniqueReceiptPath = "/password" + (++receiptSerial);
              let receiptUrl = `http://localhost:${port}${uniqueReceiptPath}`;
 
@@ -62,7 +65,7 @@ httpMain().then(async ([err, listener]) => {
                          get: (service) => {
                              return {
                                  urls: [receiptUrl],
-                                 password: "secret",
+                                 password: secret,
                                  type: "plain"
                              };
                          }
@@ -96,12 +99,15 @@ httpMain().then(async ([err, listener]) => {
                  }, requestSlurp(resolve)).end();
              });
          });
-    assert.deepStrictEqual("secret", receivedPassword.password);
 
+    // Close the sockets
     keepieListener.close();
     listener.close();
+    // And the timer
     clearInterval(keepieInterval);
-    console.log("after closes");
+
+    // Check the password
+    assert.deepStrictEqual(secret, receivedPassword.password);
 });
 
 // End
