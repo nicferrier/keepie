@@ -342,24 +342,41 @@ async function guessPgBin() {
     }
 }
 
+// A deferred holder contains a value that is not computed until
+// valueOf ... we use it to ensure we can get the hostPort from the
+// server after it's started
+const DeferredHolder = function () {
+    this.hostPort = undefined;
+    this.setHost = function (hostPort) { this.hostPort = hostPort; };
+};
+DeferredHolder.prototype.valueOf = function () {
+    const keepieUrlEnvValue = process.env["KEEPIEURL"];
+    if (keepieUrlEnvValue !== undefined && keepieUrlEnvValue !== "") {
+        return keepieUrlEnvValue;
+    }
+    return this.hostPort + "/keepie-request";
+};
+
+
 exports.boot = async function (portToListen, options) {
-    let opts = options != undefined ? options : {};
-    let listenAddress = opts.listenAddress;
-    let rootDir = opts.rootDir != undefined ? opts.rootDir : __dirname + "/www";
-    let secretPath = opts.secretPath != undefined
-        ? opts.secretPath : "/pg/keepie-secret/";
-    let serviceName = opts.serviceName != undefined ? opts.serviceName : "pg-demo";
-    let pgBinDir = opts.pgBinDir != undefined ? opts.pgBinDir : await guessPgBin();
-    let sqlScriptsDir = opts.sqlScriptsDir != undefined
-        ?  opts.sqlScriptsDir : path.join(__dirname, "sql-scripts");
-    let dbDir = opts.dbDir != undefined ? opts.dbDir : path.join(__dirname, "dbdir");
-    let pgPoolConfig = opts.pgPoolConfig != undefined
-        ? opts.pgPoolConfig : {  // default pgPool config
+    const defaultKeepieUrl = new DeferredHolder();
+    const {
+        listenAddress,
+        listenerCallback,
+        appCallback,
+        rootDir = path.join(__dirname, "/www"),
+        secretPath = "/pg/keepie-secret",
+        serviceName = "pg-demo",
+        keepieUrl = defaultKeepieUrl,
+        pgBinDir = await guessPgBin(),
+        sqlScriptsDir = path.join(__dirname, "sql-scripts"),
+        dbDir = path.join(__dirname, "dbdir"),
+        pgPoolConfig = {
             max: 10,
             idleTimeoutMillis: 30 * 1000,
             connectionTimeoutMillis: 2 * 1000
-        };
-    let appCallback = opts.appCallback;
+        }
+    } = options != undefined ? options : {};
 
     // Ensure we don't have keys we don't want
     Object.keys(pgPoolConfig).forEach(key => {
@@ -415,30 +432,22 @@ exports.boot = async function (portToListen, options) {
         let hostToListen = addr.address == "::" ? "localhost" : addr.address;
         app.port = addr.port;
 
-        let listenerCallback = opts.listenerCallback;
         if (typeof(listenerCallback) === "function") {
             listenerCallback(addr);
         }
 
         console.log("keepie pg listening on ", app.port);
 
+        const hostScheme = "http://" + hostToListen + ":" + addr.port;
+        defaultKeepieUrl.setHost(hostScheme);
+        const keepieUrlValue = keepieUrl.valueOf();
+
         // Where do we receive passwords from keepie?
-        let passwordReceiptUrl =
-            "http://" + hostToListen + ":" + addr.port + secretPath;
-
-        // What address do we call keepie on? by default this server (for dev)
-        let defaultKeepieUrl = process.env["KEEPIEURL"];
-        if (defaultKeepieUrl == undefined || defaultKeepieUrl == "") {
-            defaultKeepieUrl =
-                "http://" + hostToListen + ":" + addr.port + "/keepie-request";
-        }
-
-        // Allow it to be defined in the opts
-        let keepieUrl = opts.keepieUrl != undefined ? opts.keepieUrl : defaultKeepieUrl;
+        let passwordReceiptUrl = hostScheme + secretPath;
 
         // And get the keepie response
-        console.log("fetching keepie auth from", keepieUrl, "to", passwordReceiptUrl);
-        let keepieResponse = await fetch(keepieUrl,{
+        console.log("fetching keepie auth from", keepieUrlValue, "to", passwordReceiptUrl);
+        let keepieResponse = await fetch(keepieUrlValue,{
             method: "POST",
             headers: { "X-Receipt-Url": passwordReceiptUrl }
         });
