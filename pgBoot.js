@@ -108,6 +108,7 @@ const upTestFn = async function (dbConfig, tries) {
 
     // console.log("testing connection r>", result);
     if (result instanceof(Error) && tries < triesLimit) {
+        client.end();
         await new Promise((resolve, reject) => {
             setTimeout(_ => resolve([]), 500);
         });
@@ -117,11 +118,15 @@ const upTestFn = async function (dbConfig, tries) {
     let queryResult = await client.query("select 1;").catch(e => e);
     // console.log("testing connection qr>", queryResult);
     if (queryResult instanceof(Error) && tries < triesLimit) {
+        client.end();
         await new Promise((resolve, reject) => {
             setTimeout(_ => resolve([]), 500);
         });
         return await upTestFn(dbConfig, tries + 1);
     }
+
+    // .. Otherwise it worked but we still need to end the connection
+    client.end();
     return true;
 };
 
@@ -218,7 +223,10 @@ host  all all ::1/128      password\n`);
                     "-U", "postgres",
                    "postgres"];
         let childProcess = spawn(psqlPath, args, {
-            stdio: "inherit", //maybe we should copy the env somehow
+            stdio: [    // "inherit", //maybe we should copy the env somehow
+                0, "pipe", 2
+            ],
+            detached: false,
             env: Object.assign({
                 "PSQL_EDITOR": process.env["PSQL_EDITOR"],
                 "EMACS_SERVER_FILE": process.env["EMACS_SERVER_FILE"],
@@ -232,7 +240,8 @@ host  all all ::1/128      password\n`);
     // Send the "db's up" event
     exports.events.emit("dbUp", {
         pgPool: pgPool,
-        psql: psqlFunc
+        psql: psqlFunc,
+        pgProcess: startChild
     });
     
     //await sqlInit.end();
