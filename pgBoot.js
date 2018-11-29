@@ -433,7 +433,7 @@ exports.boot = async function (portToListen, options) {
         app.port = addr.port;
 
         if (typeof(listenerCallback) === "function") {
-            listenerCallback(addr);
+            listenerCallback(addr, listener);
         }
 
         console.log("keepie pg listening on ", app.port);
