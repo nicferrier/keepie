@@ -20,7 +20,7 @@ exports.initDb = async function (directory, dbConfig) {
             let dirExists = await fs.promises.exists(directory);
             if (dirExists) {
                 let entries = await fs.promises.readdir(directory);
-                let filtered = entries.filter(entry => !entry.endsWith("~"));
+                let filtered = entries.filter(entry => !entry.endsWith("~") && !entry.startsWith("."));
                 
                 await filtered.forEachAsync(async entry => {
                     let sqlFile = path.join(directory, entry);
