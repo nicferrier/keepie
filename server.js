@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // keepie -*- js-indent-level: 4 -*-
 // Copyright (C) 2018 by Nic Ferrier
 

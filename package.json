@@ -3,7 +3,7 @@
     "name": "keepie",
     "description": "Keepie keeps passwords",
     "license": "MIT",
-    "version": "0.0.26",
+    "version": "0.0.27",
     "keywords": [
         "postgresql",
         "microservice",
@@ -17,6 +17,9 @@
     "main": "./server.js",
     "scripts": {
         "test": "node ./test-keepie.js ; node test-fs-export.js"
+    },
+    "bin": {
+        "make-pgboot": "./server.js"
     },
     "dependencies": {
         "body-parser": "^1.18.3",
@@ -38,6 +41,6 @@
         "sha1": "1.1.1"
     },
     "engines": {
-        "node": ">=9.0"
+        "node": ">=10.0"
     }
 }
