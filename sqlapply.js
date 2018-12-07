@@ -11,36 +11,48 @@ Array.prototype.forEachAsync = async function (fn) {
     for (let t of this) { await fn(t) }
 };
 
-exports.initDb = async function (directory, dbConfig) {
-    let pool = new Pool(dbConfig);
-    let client = await pool.connect();
+async function sqlApply (directory, client) {
+    const dirExists = await fs.promises.exists(directory);
+    if (dirExists) {
+        let entries = await fs.promises.readdir(directory);
+        let filtered = entries.filter(entry => !entry.endsWith("~") && !entry.startsWith("."));
+        
+        await filtered.forEachAsync(async entry => {
+            let sqlFile = path.join(directory, entry);
+            exports.events.emit("sqlFile", sqlFile);
+            let file = await fs.promises.readFile(sqlFile);
+            let statements = file.split("\n\n");
+            let sqlToRun = statements.filter(statement => !statement.startsWith("--"));
+            
+            await sqlToRun.forEachAsync(async sql => {
+                try {
+                    let res = await client.query(sql);
+                    // console.log(sql, res.rows);
+                }
+                catch (e) {
+                    console.log(
+                        "keepie sqlapply - error doing",
+                        sqlFile, sql, e
+                    );
+                }
+            });
+        });
+    }
+}
 
-    if (directory !== undefined) {
+exports.initDb = async function (directoryOrListOfDirectory, dbConfig) {
+    const pool = new Pool(dbConfig);
+    const client = await pool.connect();
+    if (directoryOrListOfDirectory !== undefined) {
         try {
-            let dirExists = await fs.promises.exists(directory);
-            if (dirExists) {
-                let entries = await fs.promises.readdir(directory);
-                let filtered = entries.filter(entry => !entry.endsWith("~") && !entry.startsWith("."));
-                
-                await filtered.forEachAsync(async entry => {
-                    let sqlFile = path.join(directory, entry);
-                    exports.events.emit("sqlFile", sqlFile);
-                    let file = await fs.promises.readFile(sqlFile);
-                    let statements = file.split("\n\n");
-                    let sqlToRun = statements.filter(statement => !statement.startsWith("--"));
-                    
-                    await sqlToRun.forEachAsync(async sql => {
-                        try {
-                            let res = await client.query(sql);
-                            // console.log(sql, res.rows);
-                        }
-                        catch (e) {
-                            console.log(
-                                "keepie sqlapply - error doing",
-                                sqlFile, sql, e
-                            );
-                        }
-                    });
+            if (typeof(directoryOrListOfDirectory) == "string") {
+                await sqlApply(directoryOrListOfDirectory, client);
+            }
+            else if (typeof(directoryOrListOfDirectory) == "object"
+                     && directoryOrListOfDirectory.filter !== undefined
+                     && typeof(directoryOrListOfDirectory.filter) == "function") {
+                directoryOrListOfDirectory.forEachAsync(async singleDirectory => {
+                    await sqlApply(singleDirectory, client)
                 });
             }
         }
