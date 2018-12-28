@@ -5,11 +5,11 @@ const EventEmitter = require("events");
 const fs = require("./fsasync.js");
 const path = require("path");
 
-exports.events = new EventEmitter();
-
 Array.prototype.forEachAsync = async function (fn) {
     for (let t of this) { await fn(t) }
 };
+
+exports.events = new EventEmitter();
 
 async function sqlApply (directory, client) {
     const dirExists = await fs.promises.exists(directory);
@@ -26,8 +26,8 @@ async function sqlApply (directory, client) {
             
             await sqlToRun.forEachAsync(async sql => {
                 try {
+                    // console.log("sqlapply", sqlFile, sql.substring(0, 40) + "...");
                     let res = await client.query(sql);
-                    // console.log(sql, res.rows);
                 }
                 catch (e) {
                     console.log(
@@ -38,6 +38,7 @@ async function sqlApply (directory, client) {
             });
         });
     }
+    return "hello";
 }
 
 exports.initDb = async function (directoryOrListOfDirectory, dbConfig) {
@@ -51,13 +52,13 @@ exports.initDb = async function (directoryOrListOfDirectory, dbConfig) {
             else if (typeof(directoryOrListOfDirectory) == "object"
                      && directoryOrListOfDirectory.filter !== undefined
                      && typeof(directoryOrListOfDirectory.filter) == "function") {
-                directoryOrListOfDirectory.forEachAsync(async singleDirectory => {
+                await directoryOrListOfDirectory.forEachAsync(async singleDirectory => {
                     await sqlApply(singleDirectory, client)
                 });
             }
         }
         finally {
-            client.release();
+            await client.release();
         }
     }
     return pool;
