@@ -139,18 +139,25 @@ async function startDb(pgPath, dbDir, startOrRun, password, sqlScriptsDir) {
     let socketNumber = "" + listenerAddress.port;
                 
     // rewrite the port in postgresql.conf
-    let config = path.join(dbDir, "postgresql.conf");
-    let file = await fs.promises.readFile(config);
-    let portChanged = file.replace(
+    const config = path.join(dbDir, "postgresql.conf");
+    const file = await fs.promises.readFile(config);
+    const portChanged = file.replace(
             /^[#]*port = .*/gm, "port = " + socketNumber
     );
 
-    let runDir = path.join(dbDir, "/run");
-    let sockDirChanged = portChanged.replace(
+    const runDir = path.join(dbDir, "/run");
+    const sockDirChanged = portChanged.replace(
             /^[#]*unix_socket_directories = .*/gm,
         "unix_socket_directories = '" + runDir + "'"
     );
-    await fs.promises.writeFile(config, sockDirChanged);
+
+    const logLevelEnv = process.env["PGLOGLEVEL"];
+    const logLevelChanged = logLevelEnv !== undefined && logLevelEnv.length > 0
+          ? sockDirChanged.replace(/^[#]*log_min_messages = .*/gm,
+                                   "log_min_messages = '" + logLevelEnv + "'")
+          : sockDirChanged;
+    
+    await fs.promises.writeFile(config, logLevelChanged);
     await fs.promises.writeFile(path.join(dbDir,"port"), socketNumber);
 
     let postgresPath = path.join(pgPath, "postgres");
@@ -462,6 +469,8 @@ exports.boot = async function (portToListen, options) {
         });
         console.log("keepie status", keepieResponse.status);
     });
+
+    return [app, listener];
 };
 
 if (require.main === module) {
