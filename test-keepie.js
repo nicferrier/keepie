@@ -72,11 +72,17 @@ async function httpTest() {
              // Setup a root for the path we made
              app.post(uniqueReceiptPath, upload.array(), function (request, response) {
                  response.sendStatus(204);
-                 resolve({
-                     requestBody: request.body,
-                     keepieListener: keepieListener,
-                     keepieInterval: keepieInterval
-                 });
+                 try {
+                     const {name, password} = request.body;
+                     resolve({
+                         requestBody: request.body,
+                         keepieListener: keepieListener,
+                         keepieInterval: keepieInterval
+                     });
+                 }
+                 catch (e) {
+                     reject(e);
+                 }
              });
              
              let {status: keepiePasswordStatus} = await new Promise((resolve, reject) => {

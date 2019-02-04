@@ -61,9 +61,9 @@ Array.prototype.filterAsync = async function (fn) {
     return result;
 };
 
-async function findPathDir(exe, pathVar) {
-    pathVar = pathVar !== undefined ? pathVar : process.env["PATH"];
-    let pathParts = pathVar.split(path.delimiter);    
+async function findPathDir(exe, pathVariable) {
+    const pathVar = pathVariable !== undefined ? pathVariable : process.env["PATH"];
+    let pathParts = pathVar.split(path.delimiter);
     let existsModes = fs.constants.R_OK;
     let existing = await pathParts
         .filterAsync(async p => await fs.promises.access(p, existsModes));
