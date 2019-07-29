@@ -148,8 +148,10 @@ async function startDb(pgPath, dbDir, startOrRun, password, sqlScriptsDir) {
     const runDir = path.join(dbDir, "/run");
     const sockDirChanged = portChanged.replace(
             /^[#]*unix_socket_directories = .*/gm,
-        "unix_socket_directories = '" + runDir + "'"
+        "unix_socket_directories = '/tmp'"  // + runDir + "'"
     );
+
+    console.log("sockDirChanged", sockDirChanged);
 
     const logLevelEnv = process.env["PGLOGLEVEL"];
     const logLevelChanged = logLevelEnv !== undefined && logLevelEnv.length > 0
@@ -161,7 +163,13 @@ async function startDb(pgPath, dbDir, startOrRun, password, sqlScriptsDir) {
     await fs.promises.writeFile(path.join(dbDir,"port"), socketNumber);
 
     let postgresPath = path.join(pgPath, "postgres");
-    let startChild = spawn(postgresPath, ["-D", dbDir]);
+    const ldLibPath = path.join(pgPath, "..", "lib");
+
+    let startChild = spawn(postgresPath, ["-D", dbDir], {
+        env: {
+            "LD_LIBRARY_PATH": ldLibPath
+        }
+    });
     startChild.stdout.pipe(process.stdout);
     startChild.stderr.pipe(process.stderr);    
 
@@ -269,6 +277,8 @@ async function makePg(serviceName, password, pgBinDir, dbDir, sqlScriptsDir) {
         }
         
         let pgExeRoot = await findPathDir("initdb", pgBinDir);
+
+        console.log("pg exe root is", pgExeRoot);
 
         if (pgExeRoot == undefined) {
             throw new Error("cant find postgres initdb");
